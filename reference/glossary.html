@@ -1,0 +1,79 @@
+<meta charset="utf-8">
+<title>Глоссарий — SQL-курс</title>
+<link rel="stylesheet" href="../assets/course.css">
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="../index.html">Курс</a> ·
+      <a href="./syllabus.html">Программа</a> ·
+      <a href="./schema.html">Схема БД</a>
+    </nav>
+  </div>
+
+  <h1>Глоссарий</h1>
+  <p class="subtitle">Единые определения на весь курс. Термины даю с английским ключевым словом — оно и есть синтаксис.</p>
+
+  <h2>Основа</h2>
+  <p><strong>Отношение / таблица (relation / table)</strong> — набор строк с одинаковыми столбцами. SQL работает <em>множествами строк</em>, а не по одной.</p>
+  <p><strong>Строка / кортеж (row / tuple)</strong> — одна запись. <strong>Столбец / поле (column)</strong> — одна характеристика с типом.</p>
+  <p><strong>Первичный ключ (primary key, PK)</strong> — столбец(ы), однозначно определяющие строку. Уникален и не NULL.</p>
+  <p><strong>Внешний ключ (foreign key, FK)</strong> — столбец, ссылающийся на PK другой таблицы. Основа связей и JOIN.</p>
+  <p><strong>Предикат (predicate)</strong> — условие, дающее <em>true / false / unknown</em> (например <code>price &gt; 50</code>). Строка попадает в результат, только если предикат = <em>true</em>.</p>
+
+  <h2>Части запроса</h2>
+  <p><strong>Порядок выполнения (logical order)</strong> — SQL <em>пишется</em> как <code>SELECT … FROM … WHERE …</code>, но <em>выполняется</em> иначе:
+  <code>FROM → WHERE → GROUP BY → HAVING → SELECT → DISTINCT → ORDER BY → LIMIT</code>. Отсюда следует, почему в <code>WHERE</code> нельзя использовать алиас из <code>SELECT</code>.</p>
+  <p><strong>WHERE</strong> — фильтр строк <em>до</em> группировки. <strong>HAVING</strong> — фильтр групп <em>после</em> <code>GROUP BY</code>.</p>
+  <p><strong>Алиас (alias)</strong> — временное имя столбца или таблицы через <code>AS</code> (у таблиц <code>AS</code> можно опустить).</p>
+  <p><strong>Проекция / фильтрация</strong> — «проекция» = выбор столбцов (<code>SELECT</code>), «фильтрация» = выбор строк (<code>WHERE</code>).</p>
+
+  <h2>NULL</h2>
+  <p><strong>NULL</strong> — «значение неизвестно / отсутствует». Это <em>не</em> 0 и <em>не</em> пустая строка.</p>
+  <p><strong>Трёхзначная логика (three-valued logic)</strong> — сравнения с <code>NULL</code> дают <em>unknown</em>, а не true/false. Поэтому <code>x = NULL</code> никогда не истинно; нужно <code>x IS NULL</code>.</p>
+  <p><strong>COALESCE(a, b, …)</strong> — первое не-NULL значение. <strong>NULLIF(a, b)</strong> — NULL, если <code>a = b</code>.</p>
+
+  <h2>JOIN</h2>
+  <p><strong>INNER JOIN</strong> — только совпавшие пары строк. <strong>LEFT JOIN</strong> — все строки левой таблицы + совпадения справа (иначе NULL). <strong>RIGHT / FULL</strong> — зеркально / обе стороны. <strong>CROSS JOIN</strong> — декартово произведение.</p>
+  <p><strong>Self-join</strong> — таблица соединяется сама с собой (через алиасы).</p>
+  <p><strong>Анти-join (anti-join)</strong> — «строки без пары»: обычно <code>LEFT JOIN … WHERE right.id IS NULL</code> или <code>NOT EXISTS</code>.</p>
+  <p><strong>Semi-join</strong> — «строки, у которых есть пара, но без дублирования» — это <code>EXISTS</code> / <code>IN</code>.</p>
+
+  <h2>Агрегация</h2>
+  <p><strong>Агрегатная функция</strong> — сворачивает много строк в одно значение: <code>COUNT</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code>.</p>
+  <p><strong>GROUP BY</strong> — делит строки на группы; агрегат считается по каждой группе.</p>
+  <p><strong>COUNT(*) vs COUNT(col)</strong> — <code>*</code> считает строки; <code>COUNT(col)</code> не считает строки, где <code>col</code> = NULL.</p>
+
+  <h2>Подзапросы и CTE</h2>
+  <p><strong>Подзапрос (subquery)</strong> — запрос внутри запроса. <strong>Скалярный</strong> — возвращает одно значение. <strong>Коррелированный (correlated)</strong> — ссылается на внешний запрос и считается для каждой внешней строки.</p>
+  <p><strong>EXISTS / NOT EXISTS</strong> — есть ли хоть одна строка в подзапросе. Обычно быстрее и безопаснее (относительно NULL), чем <code>IN / NOT IN</code>.</p>
+  <p><strong>CTE (Common Table Expression)</strong> — именованный подзапрос через <code>WITH name AS (…)</code>. Улучшает читаемость; бывает рекурсивным.</p>
+
+  <h2>Оконные функции</h2>
+  <p><strong>Оконная функция (window function)</strong> — считает значение по «окну» строк, <em>не</em> схлопывая строки (в отличие от <code>GROUP BY</code>). Задаётся через <code>OVER (…)</code>.</p>
+  <p><strong>PARTITION BY</strong> — делит на окна (аналог группы). <strong>ORDER BY</strong> внутри <code>OVER</code> — задаёт порядок для нумерации/накопления.</p>
+  <p><strong>ROW_NUMBER / RANK / DENSE_RANK</strong> — нумерация/ранжирование. <strong>LAG / LEAD</strong> — значение из предыдущей/следующей строки. <strong>Frame</strong> — диапазон строк окна (<code>ROWS BETWEEN …</code>).</p>
+
+  <h2>Изменение данных и схема</h2>
+  <p><strong>DML</strong> — <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> (данные). <strong>DDL</strong> — <code>CREATE</code>, <code>ALTER</code>, <code>DROP</code> (структура).</p>
+  <p><strong>UPSERT</strong> — «вставь или обнови»: в Postgres <code>INSERT … ON CONFLICT … DO UPDATE</code>.</p>
+  <p><strong>RETURNING</strong> — расширение Postgres: <code>INSERT/UPDATE/DELETE … RETURNING</code> возвращает изменённые строки.</p>
+  <p><strong>Ограничение (constraint)</strong> — правило целостности: <code>NOT NULL</code>, <code>UNIQUE</code>, <code>CHECK</code>, <code>PRIMARY KEY</code>, <code>FOREIGN KEY</code>.</p>
+
+  <h2>Производительность и транзакции</h2>
+  <p><strong>Индекс (index)</strong> — вспомогательная структура (обычно B-tree) для быстрого поиска строк без полного скана.</p>
+  <p><strong>EXPLAIN / EXPLAIN ANALYZE</strong> — план запроса (и реальные времена). Основной инструмент для «почему медленно».</p>
+  <p><strong>Транзакция (transaction)</strong> — набор операций «всё или ничего»: <code>BEGIN … COMMIT / ROLLBACK</code>.</p>
+  <p><strong>ACID</strong> — Atomicity, Consistency, Isolation, Durability — гарантии транзакций.</p>
+  <p><strong>Уровень изоляции (isolation level)</strong> — насколько транзакции видят изменения друг друга (Read Committed, Repeatable Read, Serializable).</p>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Спроси учителя.</b> Встретил термин не из списка — напиши в чат, добавлю сюда и объясню.</div>
+    <div class="lesson-nav">
+      <a href="./schema.html">← Схема БД</a>
+      <a href="./syllabus.html">Программа курса →</a>
+    </div>
+  </div>
+
+</div>

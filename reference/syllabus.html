@@ -1,0 +1,142 @@
+<meta charset="utf-8">
+<title>Программа курса — SQL для backend</title>
+<link rel="stylesheet" href="../assets/course.css">
+<div class="wrap wide">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="../index.html">Курс</a> ·
+      <a href="./schema.html">Схема БД</a> ·
+      <a href="./glossary.html">Глоссарий</a>
+    </nav>
+  </div>
+
+  <h1>Программа курса</h1>
+  <p class="subtitle">SQL для backend-разработки на PostgreSQL. 13 тем, ≥10 упражнений в каждой, всё на реальном Postgres в браузере.</p>
+
+  <div class="callout">
+    <span class="label">Как устроено</span>
+    <p>Порядок идёт от повторения к глубине. Начинаем с диагностики, чтобы не тратить время на то, что ты уже знаешь.
+    Темы <b>4–8</b> (агрегации, JOIN вглубь, подзапросы, CTE, оконные функции) — ядро «глубины», которого тебе не хватает.
+    Темы <b>11–13</b> (индексы/EXPLAIN, транзакции) — то, что отличает backend-инженера от «человека, пишущего SELECT».</p>
+  </div>
+
+  <div class="cards">
+
+    <a class="card" href="../lessons/0001-playground-and-diagnostic.html">
+      <span class="k">Урок 00</span>
+      <h3>Площадка + диагностика</h3>
+      <p>Знакомство с движком. 8 задач по нарастающей — чтобы понять твой реальный уровень.</p>
+      <div class="meta">✅ Готов · 8 задач</div>
+    </a>
+
+    <a class="card" href="../lessons/0002-select-in-depth.html">
+      <span class="k">Тема 01</span>
+      <h3>SELECT вглубь</h3>
+      <p>WHERE, DISTINCT, ORDER BY, LIMIT/OFFSET, BETWEEN, IN, LIKE/ILIKE. Логический порядок выполнения.</p>
+      <div class="meta">✅ Готов · 12 упражнений</div>
+    </a>
+
+    <div class="card locked">
+      <span class="k">Тема 02</span>
+      <h3>NULL и трёхзначная логика</h3>
+      <p>IS NULL, COALESCE, NULLIF, ловушки NOT IN и агрегатов с NULL. Тема, где обычно и живёт «нет глубины».</p>
+      <div class="meta">🔒 Дальше · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 03</span>
+      <h3>Выражения и CASE</h3>
+      <p>CASE, приведение типов (::), строки, работа с датами/timestamp, арифметика.</p>
+      <div class="meta">🔒 Дальше · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 04</span>
+      <h3>Агрегация: GROUP BY / HAVING</h3>
+      <p>COUNT/SUM/AVG/MIN/MAX, группировка, HAVING, COUNT(*) vs COUNT(col), FILTER.</p>
+      <div class="meta">🔒 Ядро · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 05</span>
+      <h3>JOIN вглубь</h3>
+      <p>INNER/LEFT/RIGHT/FULL/CROSS, self-join, несколько JOIN, анти-join и semi-join, ON vs WHERE.</p>
+      <div class="meta">🔒 Ядро · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 06</span>
+      <h3>Подзапросы</h3>
+      <p>Скалярные, IN, ANY/ALL, EXISTS/NOT EXISTS, коррелированные, подзапрос в FROM.</p>
+      <div class="meta">🔒 Ядро · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 07</span>
+      <h3>CTE (WITH) и рекурсия</h3>
+      <p>WITH для читаемости, цепочки CTE, рекурсивные CTE (иерархии, генерация рядов).</p>
+      <div class="meta">🔒 Ядро · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 08</span>
+      <h3>Оконные функции</h3>
+      <p>OVER, PARTITION BY, ROW_NUMBER/RANK/DENSE_RANK, LAG/LEAD, нарастающие итоги, frames.</p>
+      <div class="meta">🔒 Ядро · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 09</span>
+      <h3>Множества: UNION / INTERSECT / EXCEPT</h3>
+      <p>UNION vs UNION ALL, пересечение и разность, требования к столбцам.</p>
+      <div class="meta">🔒 Дальше · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 10</span>
+      <h3>Изменение данных</h3>
+      <p>INSERT, UPDATE, DELETE, UPSERT (ON CONFLICT), RETURNING, безопасные UPDATE.</p>
+      <div class="meta">🔒 Дальше · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 11</span>
+      <h3>DDL, ключи и ограничения</h3>
+      <p>CREATE TABLE, PK/FK/UNIQUE/CHECK/NOT NULL, базовая нормализация, JSONB кратко.</p>
+      <div class="meta">🔒 Дальше · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 12</span>
+      <h3>Индексы и EXPLAIN</h3>
+      <p>Почему запрос медленный, чтение плана, когда индекс помогает, типы индексов.</p>
+      <div class="meta">🔒 Backend · ≥10 упр.</div>
+    </div>
+
+    <div class="card locked">
+      <span class="k">Тема 13</span>
+      <h3>Транзакции и изоляция</h3>
+      <p>BEGIN/COMMIT/ROLLBACK, ACID, уровни изоляции, блокировки, дедлоки.</p>
+      <div class="meta">🔒 Backend · ≥10 упр.</div>
+    </div>
+
+  </div>
+
+  <div class="callout win">
+    <span class="label">Темп</span>
+    <p>Не пытайся пройти всё сразу. Один урок = одна идея + практика, 15–30 минут. Возвращайся к темам через день-два —
+    это <em>интервальное повторение</em>, оно и строит долгую память. Порядок можно менять: после диагностики я подскажу,
+    с чего тебе реально стартовать.</p>
+  </div>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Спроси учителя.</b> Хочешь другую тему раньше или добавить тему под конкретную рабочую задачу — напиши, перестрою программу.</div>
+    <div class="lesson-nav">
+      <a href="../index.html">← К курсу</a>
+      <a href="../lessons/0001-playground-and-diagnostic.html">Начать: диагностика →</a>
+    </div>
+  </div>
+
+</div>

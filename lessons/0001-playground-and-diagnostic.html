@@ -1,0 +1,123 @@
+<meta charset="utf-8">
+<title>Урок 0 · Площадка и диагностика — SQL-курс</title>
+<link rel="stylesheet" href="../assets/course.css">
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="../index.html">Курс</a> ·
+      <a href="../reference/schema.html">Схема БД</a> ·
+      <a href="../reference/glossary.html">Глоссарий</a>
+    </nav>
+  </div>
+
+  <h1>Урок 0 — Площадка и диагностика</h1>
+  <p class="subtitle">Знакомимся с движком и честно замеряем, что ты уже умеешь. Цель — не набрать баллы, а понять, с чего тебе реально стартовать.</p>
+
+  <div class="callout win">
+    <span class="label">Твой первый выигрыш</span>
+    <p>Прямо на этой странице работает <b>настоящий PostgreSQL</b> — он запущен в браузере (технология PGlite/WASM,
+    без установки). Ты будешь писать реальные запросы к реальной БД и сразу видеть результат. Это и есть та самая
+    практика, которой не хватало.</p>
+  </div>
+
+  <p><b>Как это работает:</b> в поле ниже пиши SQL и нажимай «Выполнить» (или <code>⌘/Ctrl + Enter</code>).
+  База — маленький интернет-магазин; держи <a href="../reference/schema.html">схему</a> открытой в соседней вкладке.</p>
+
+  <div class="source-box">
+    <span class="label">Главный источник по теме</span>
+    Официальный туториал PostgreSQL — <a href="https://www.postgresql.org/docs/current/tutorial-sql.html" target="_blank" rel="noopener">The SQL Language</a>.
+    Это первоисточник; когда сомневаешься в поведении Postgres — смотри туда (есть и <a href="https://postgrespro.ru/docs/postgresql" target="_blank" rel="noopener">перевод на русский</a>).
+  </div>
+
+  <h2><span class="num">§1</span> Поздоровайся с базой</h2>
+  <p>Запусти запрос ниже как есть. Потом поменяй <code>customers</code> на <code>products</code> или <code>orders</code>
+  и запусти снова — просто чтобы почувствовать данные.</p>
+
+  <div class="sql-playground" data-height="90">
+    <script type="text/plain" class="starter">SELECT * FROM customers;</script>
+  </div>
+
+  <hr>
+
+  <div class="exset-head">
+    <h2><span class="num">§2</span> Диагностика · 8 задач</h2>
+    <span class="progress" data-progress>решено 0 / 8</span>
+  </div>
+  <p>Задачи идут <b>по нарастанию сложности</b>. Решай, пока можешь. Где застрянешь — это и есть твоя граница, с неё начнём.
+  Проверка автоматическая (<span style="color:var(--ok-fg)">✓ верно</span> / <span style="color:var(--err-fg)">✗ пока нет</span>).
+  Решения здесь намеренно скрыты — они появятся в самих уроках.</p>
+
+  <div class="callout trap">
+    <span class="label">Важно</span>
+    <p>После диагностики <b>напиши мне в чат</b>, до какой задачи дошёл и где споткнулся. Авто-проверка видит ✓/✗,
+    но не видит тебя — по твоему ответу я построю следующий урок точно по размеру (не легко и не невыносимо).</p>
+  </div>
+
+  <div class="sql-exercise" data-num="d1" data-hide-solution="true">
+    <p class="task"><span class="qnum">1.</span> Выведи <b>все столбцы и все строки</b> таблицы <code>customers</code>.</p>
+    <script type="text/plain" class="solution">SELECT * FROM customers;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="d2" data-hide-solution="true">
+    <p class="task"><span class="qnum">2.</span> Выведи <code>name</code> и <code>price</code> товаров <b>дороже 50</b>.</p>
+    <script type="text/plain" class="solution">SELECT name, price FROM products WHERE price > 50;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="d3" data-order="true" data-hide-solution="true">
+    <p class="task"><span class="qnum">3.</span> <b>Три самых дорогих</b> товара: <code>name</code> и <code>price</code>, по убыванию цены. (важен порядок)</p>
+    <script type="text/plain" class="solution">SELECT name, price FROM products ORDER BY price DESC LIMIT 3;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="d4" data-hide-solution="true">
+    <p class="task"><span class="qnum">4.</span> Для каждого заказа выведи <code>order_id</code> и <b>имя покупателя</b> (<code>name</code>). Должно получиться 14 строк.</p>
+    <script type="text/plain" class="solution">SELECT o.order_id, c.name
+FROM orders o
+JOIN customers c ON c.customer_id = o.customer_id;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="d5" data-hide-solution="true">
+    <p class="task"><span class="qnum">5.</span> Сколько заказов в <b>каждом статусе</b>? Выведи <code>status</code> и количество заказов.</p>
+    <script type="text/plain" class="solution">SELECT status, COUNT(*) AS cnt
+FROM orders
+GROUP BY status;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="d6" data-hide-solution="true">
+    <p class="task"><span class="qnum">6.</span> <b>Выручка по категориям.</b> Для каждой категории, где были продажи, выведи имя категории (<code>name</code>)
+    и суммарную выручку — сумму <code>quantity * unit_price</code> по всем проданным товарам этой категории.</p>
+    <script type="text/plain" class="solution">SELECT c.name, SUM(oi.quantity * oi.unit_price) AS revenue
+FROM categories c
+JOIN products p     ON p.category_id = c.category_id
+JOIN order_items oi ON oi.product_id = p.product_id
+GROUP BY c.name;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="d7" data-hide-solution="true">
+    <p class="task"><span class="qnum">7.</span> Найди покупателей <b>без единого заказа</b>. Выведи их <code>name</code>.</p>
+    <script type="text/plain" class="solution">SELECT c.name
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id
+WHERE o.order_id IS NULL;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="d8" data-hide-solution="true">
+    <p class="task"><span class="qnum">8.</span> Для каждого товара выведи <code>name</code>, <code>category_id</code>, <code>price</code> и его
+    <b>номер по дороговизне внутри своей категории</b> (1 = самый дорогой). Столбец с номером назови <code>rnk</code>.</p>
+    <script type="text/plain" class="solution">SELECT name, category_id, price,
+       ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY price DESC) AS rnk
+FROM products;</script>
+  </div>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Спроси учителя.</b> Готово? Напиши в чат: «дошёл до №N, застрял на …». Это запускает следующий шаг курса.
+    И спрашивай что угодно по ходу — я твой преподаватель.</div>
+    <div class="lesson-nav">
+      <a href="../reference/syllabus.html">← Программа курса</a>
+      <a href="./0002-select-in-depth.html">Тема 01: SELECT вглубь →</a>
+    </div>
+  </div>
+
+</div>
+<script type="module" src="../assets/engine.js"></script>

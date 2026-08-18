@@ -1,0 +1,77 @@
+<meta charset="utf-8">
+<title>SQL для backend · курс на PostgreSQL</title>
+<link rel="stylesheet" href="./assets/course.css">
+<div class="wrap wide">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="./reference/syllabus.html">Программа</a> ·
+      <a href="./reference/schema.html">Схема БД</a> ·
+      <a href="./reference/glossary.html">Глоссарий</a>
+    </nav>
+  </div>
+
+  <h1>SQL для backend-разработки</h1>
+  <p class="subtitle">Практический курс на PostgreSQL. Настоящий Postgres прямо в браузере, авто-проверка каждого запроса. От «знаю SELECT и JOIN» — до уверенной глубины.</p>
+
+  <div class="callout win">
+    <span class="label">Миссия</span>
+    <p>Перестать бояться SQL и уверенно писать/читать сложные Postgres-запросы в реальных backend-задачах:
+    агрегации, подзапросы, <code>EXISTS</code>, оконные функции, CTE, а дальше — индексы, <code>EXPLAIN</code> и транзакции.</p>
+  </div>
+
+  <h2>С чего начать</h2>
+  <div class="cards">
+    <a class="card" href="./lessons/0001-playground-and-diagnostic.html">
+      <span class="k">Шаг 1 · Урок 0</span>
+      <h3>Площадка + диагностика</h3>
+      <p>Познакомься с движком и пройди 8 задач по нарастающей — чтобы понять свой уровень.</p>
+      <div class="meta">✅ Готов</div>
+    </a>
+    <a class="card" href="./lessons/0002-select-in-depth.html">
+      <span class="k">Шаг 2 · Тема 01</span>
+      <h3>SELECT вглубь</h3>
+      <p>Порядок выполнения запроса, точная фильтрация, сортировка, пагинация. 12 упражнений.</p>
+      <div class="meta">✅ Готов</div>
+    </a>
+    <a class="card" href="./reference/syllabus.html">
+      <span class="k">Карта</span>
+      <h3>Вся программа</h3>
+      <p>13 тем, ≥10 упражнений в каждой. Ядро глубины: агрегации, JOIN, подзапросы, CTE, оконные функции.</p>
+      <div class="meta">📋 Дорожная карта</div>
+    </a>
+  </div>
+
+  <h2>Справочники (держи под рукой)</h2>
+  <div class="cards">
+    <a class="card" href="./reference/schema.html">
+      <span class="k">Reference</span>
+      <h3>Схема учебной БД</h3>
+      <p>Интернет-магазин: 7 таблиц, связи и «ловушки» в данных.</p>
+    </a>
+    <a class="card" href="./reference/glossary.html">
+      <span class="k">Reference</span>
+      <h3>Глоссарий</h3>
+      <p>Единые определения терминов на весь курс.</p>
+    </a>
+  </div>
+
+  <h2>Как запускать</h2>
+  <p>Уроки используют настоящий Postgres в браузере, поэтому их нужно открывать <b>через локальный сервер</b>
+  (простое открытие файла двойным кликом не даст загрузить движок).</p>
+  <ol>
+    <li>В терминале из папки <code>sql/</code> запусти <code>python3 serve.py</code> — сервер сам откроет браузер.</li>
+    <li>Либо на macOS дважды кликни <code>serve.command</code> — делает то же самое.</li>
+  </ol>
+  <p><small>Нужен интернет: движок Postgres (PGlite) подгружается с CDN при первом запуске.</small></p>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Я — твой преподаватель.</b> Спрашивай в чате что угодно по SQL, проси разобрать задачу или добавить тему под рабочую ситуацию. После диагностики напиши, как далеко дошёл — подстрою следующий урок.</div>
+    <div class="lesson-nav">
+      <a href="./reference/syllabus.html">Программа курса</a>
+      <a href="./lessons/0001-playground-and-diagnostic.html">Начать → Диагностика</a>
+    </div>
+  </div>
+
+</div>

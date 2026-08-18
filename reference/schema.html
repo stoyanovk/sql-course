@@ -1,0 +1,124 @@
+<meta charset="utf-8">
+<title>Справочник: схема учебной базы — SQL-курс</title>
+<link rel="stylesheet" href="../assets/course.css">
+<div class="wrap wide">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="../index.html">Курс</a> ·
+      <a href="./syllabus.html">Программа</a> ·
+      <a href="./glossary.html">Глоссарий</a>
+    </nav>
+  </div>
+
+  <h1>Учебная база: интернет-магазин</h1>
+  <p class="subtitle">Одна схема на весь курс. Держи эту страницу открытой рядом — все упражнения работают с этими таблицами.</p>
+
+  <div class="callout">
+    <span class="label">Как читать</span>
+    <p>Шесть таблиц данных + одна пустая-по-товарам категория. Стрелка <code>→</code> означает внешний ключ
+    (foreign key): значение столбца ссылается на строку другой таблицы. В данные намеренно вшиты «ловушки»
+    (NULL-ы, заказы без оплат, категория без товаров) — на них строятся глубокие темы.</p>
+  </div>
+
+  <h2>Связи (кто на кого ссылается)</h2>
+<pre>customers ──&lt; orders ──&lt; order_items &gt;── products &gt;── categories
+                 │
+                 └──&lt; payments
+
+«──&lt;» читается как «один ко многим»:
+  один customer  → много orders
+  один order     → много order_items и (0..1) payments
+  один product   → много order_items
+  одна category  → много products</pre>
+
+  <h2>customers — покупатели</h2>
+  <table class="data">
+    <thead><tr><th>Столбец</th><th>Тип</th><th>Заметки</th></tr></thead>
+    <tbody>
+      <tr><td><code>customer_id</code></td><td><code>int</code></td><td>PK</td></tr>
+      <tr><td><code>name</code></td><td><code>text</code></td><td>NOT NULL</td></tr>
+      <tr><td><code>email</code></td><td><code>text</code></td><td>UNIQUE · <b>у Jack Wilson (id 10) — NULL</b></td></tr>
+      <tr><td><code>country</code></td><td><code>text</code></td><td><b>NULL</b> у Dmitry (4) и Grace (7)</td></tr>
+      <tr><td><code>created_at</code></td><td><code>date</code></td><td>дата регистрации</td></tr>
+    </tbody>
+  </table>
+  <p><small>10 строк. Jack Wilson (id 10) <b>не имеет ни одного заказа</b> — удобен для анти-join.</small></p>
+
+  <h2>categories — категории товаров</h2>
+  <table class="data">
+    <thead><tr><th>Столбец</th><th>Тип</th><th>Заметки</th></tr></thead>
+    <tbody>
+      <tr><td><code>category_id</code></td><td><code>int</code></td><td>PK</td></tr>
+      <tr><td><code>name</code></td><td><code>text</code></td><td>NOT NULL</td></tr>
+    </tbody>
+  </table>
+  <p><small>7 строк: Electronics, Books, Clothing, Home, Toys, Sports, <b>Garden</b>. У <b>Garden нет товаров</b> — удобна для LEFT JOIN.</small></p>
+
+  <h2>products — товары</h2>
+  <table class="data">
+    <thead><tr><th>Столбец</th><th>Тип</th><th>Заметки</th></tr></thead>
+    <tbody>
+      <tr><td><code>product_id</code></td><td><code>int</code></td><td>PK</td></tr>
+      <tr><td><code>name</code></td><td><code>text</code></td><td>NOT NULL</td></tr>
+      <tr><td><code>category_id</code></td><td><code>int</code></td><td>→ <code>categories.category_id</code></td></tr>
+      <tr><td><code>price</code></td><td><code>numeric(10,2)</code></td><td>цена за единицу</td></tr>
+      <tr><td><code>stock</code></td><td><code>int</code></td><td><b>0</b> у Headphones (4) и Jeans (10) — нет на складе</td></tr>
+    </tbody>
+  </table>
+  <p><small>18 строк.</small></p>
+
+  <h2>orders — заказы</h2>
+  <table class="data">
+    <thead><tr><th>Столбец</th><th>Тип</th><th>Заметки</th></tr></thead>
+    <tbody>
+      <tr><td><code>order_id</code></td><td><code>int</code></td><td>PK</td></tr>
+      <tr><td><code>customer_id</code></td><td><code>int</code></td><td>→ <code>customers.customer_id</code></td></tr>
+      <tr><td><code>status</code></td><td><code>text</code></td><td>одно из: <code>paid</code>, <code>shipped</code>, <code>pending</code>, <code>cancelled</code></td></tr>
+      <tr><td><code>created_at</code></td><td><code>date</code></td><td>дата заказа</td></tr>
+    </tbody>
+  </table>
+  <p><small>14 строк (id 100–113). Только <code>paid</code> и <code>shipped</code> заказы имеют строку в <code>payments</code>. <code>pending</code>/<code>cancelled</code> — без оплаты.</small></p>
+
+  <h2>order_items — позиции заказа</h2>
+  <table class="data">
+    <thead><tr><th>Столбец</th><th>Тип</th><th>Заметки</th></tr></thead>
+    <tbody>
+      <tr><td><code>order_item_id</code></td><td><code>int</code></td><td>PK</td></tr>
+      <tr><td><code>order_id</code></td><td><code>int</code></td><td>→ <code>orders.order_id</code></td></tr>
+      <tr><td><code>product_id</code></td><td><code>int</code></td><td>→ <code>products.product_id</code></td></tr>
+      <tr><td><code>quantity</code></td><td><code>int</code></td><td>кол-во</td></tr>
+      <tr><td><code>unit_price</code></td><td><code>numeric(10,2)</code></td><td>цена на момент заказа (обычно = price)</td></tr>
+    </tbody>
+  </table>
+  <p><small>24 строки. Сумма позиции = <code>quantity * unit_price</code>.</small></p>
+
+  <h2>payments — оплаты</h2>
+  <table class="data">
+    <thead><tr><th>Столбец</th><th>Тип</th><th>Заметки</th></tr></thead>
+    <tbody>
+      <tr><td><code>payment_id</code></td><td><code>int</code></td><td>PK</td></tr>
+      <tr><td><code>order_id</code></td><td><code>int</code></td><td>→ <code>orders.order_id</code></td></tr>
+      <tr><td><code>amount</code></td><td><code>numeric(10,2)</code></td><td>= сумма позиций заказа</td></tr>
+      <tr><td><code>method</code></td><td><code>text</code></td><td><code>card</code>, <code>paypal</code>, <code>wire</code></td></tr>
+      <tr><td><code>paid_at</code></td><td><code>date</code></td><td>дата оплаты</td></tr>
+    </tbody>
+  </table>
+  <p><small>10 строк — по одной на каждый <code>paid</code>/<code>shipped</code> заказ.</small></p>
+
+  <div class="callout trap">
+    <span class="label">Подсмотреть данные</span>
+    <p>Любую таблицу можно посмотреть в любом уроке: напиши в редакторе <code>SELECT * FROM orders;</code> и нажми «Выполнить».
+    Полную DDL и вставки см. в <code>assets/seed.js</code>.</p>
+  </div>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Спроси учителя.</b> Не уверен, как связаны таблицы под конкретную задачу? Напиши мне в чат — разберём на этой схеме.</div>
+    <div class="lesson-nav">
+      <a href="../index.html">← К курсу</a>
+      <a href="./glossary.html">Глоссарий →</a>
+    </div>
+  </div>
+
+</div>

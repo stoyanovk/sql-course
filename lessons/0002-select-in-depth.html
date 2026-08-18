@@ -1,0 +1,189 @@
+<meta charset="utf-8">
+<title>Тема 01 · SELECT вглубь — SQL-курс</title>
+<link rel="stylesheet" href="../assets/course.css">
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="../index.html">Курс</a> ·
+      <a href="../reference/schema.html">Схема БД</a> ·
+      <a href="../reference/glossary.html">Глоссарий</a>
+    </nav>
+  </div>
+
+  <h1>Тема 01 — SELECT вглубь</h1>
+  <p class="subtitle">Один запрос, одна таблица — но с контролем над строками, порядком и объёмом. Тот самый фундамент, на который встанут JOIN, агрегации и оконные функции.</p>
+
+  <div class="callout win">
+    <span class="label">Что заберёшь с урока</span>
+    <p>Поймёшь <b>реальный порядок выполнения</b> запроса (не тот, в котором он написан) — и почему это объясняет
+    половину «странностей» SQL. Освоишь точную фильтрацию: <code>BETWEEN</code>, <code>IN</code>, <code>LIKE/ILIKE</code>,
+    сортировку с <code>NULLS LAST</code> и постраничный вывод <code>LIMIT/OFFSET</code>.</p>
+  </div>
+
+  <div class="source-box">
+    <span class="label">Главный источник по теме</span>
+    PostgreSQL Docs — <a href="https://www.postgresql.org/docs/current/queries-overview.html" target="_blank" rel="noopener">Queries</a>
+    и <a href="https://www.postgresql.org/docs/current/sql-select.html" target="_blank" rel="noopener">SELECT</a> (справка по всем частям).
+    Второе объяснение простыми словами — <a href="https://mode.com/sql-tutorial/sql-where/" target="_blank" rel="noopener">Mode SQL Tutorial</a>.
+  </div>
+
+  <h2><span class="num">§1</span> Порядок, в котором SQL реально работает</h2>
+  <p>Ты <em>пишешь</em> запрос так: <code>SELECT … FROM … WHERE … ORDER BY …</code>.
+  Но Postgres <em>выполняет</em> его в другом порядке:</p>
+<pre><span class="kw">FROM</span>      → взять таблицу (источник строк)
+<span class="kw">WHERE</span>     → отфильтровать строки (по одной)
+<span class="kw">SELECT</span>    → выбрать/вычислить столбцы, задать алиасы
+<span class="kw">DISTINCT</span>  → убрать дубликаты
+<span class="kw">ORDER BY</span>  → отсортировать
+<span class="kw">LIMIT</span>/<span class="kw">OFFSET</span> → отрезать нужный кусок</pre>
+  <p>Отсюда практический вывод: в <code>WHERE</code> ещё <b>нет</b> алиасов из <code>SELECT</code> — ведь <code>WHERE</code>
+  считается раньше. А в <code>ORDER BY</code> алиас уже <b>можно</b>, потому что он идёт после <code>SELECT</code>.</p>
+
+  <div class="quiz" data-answer="2">
+    <p class="q">Проверка: почему алиас из SELECT нельзя использовать в WHERE?</p>
+    <ul class="opts">
+      <li><button class="opt">WHERE считается позже, чем SELECT</button></li>
+      <li><button class="opt">WHERE считается раньше, чем SELECT</button></li>
+      <li><button class="opt">SELECT считается раньше всех частей</button></li>
+      <li><button class="opt">Алиасы работают только внутри HAVING</button></li>
+    </ul>
+    <div class="explain">Верно: <code>WHERE</code> выполняется раньше <code>SELECT</code>, поэтому алиас, заданный в
+    <code>SELECT</code>, в <code>WHERE</code> ещё не существует. В <code>ORDER BY</code> (он после <code>SELECT</code>) алиас уже доступен.</div>
+  </div>
+
+  <h2><span class="num">§2</span> Инструменты фильтрации и вывода</h2>
+  <table class="data">
+    <thead><tr><th>Приём</th><th>Пример</th><th>Смысл</th></tr></thead>
+    <tbody>
+      <tr><td>Сравнение</td><td><code>price &gt;= 50</code>, <code>status &lt;&gt; 'paid'</code></td><td><code>&lt;&gt;</code> — «не равно»</td></tr>
+      <tr><td>Диапазон</td><td><code>price BETWEEN 20 AND 40</code></td><td>границы <b>включаются</b></td></tr>
+      <tr><td>Список</td><td><code>category_id IN (1, 5)</code></td><td>одно из значений</td></tr>
+      <tr><td>Шаблон</td><td><code>name LIKE 'C%'</code></td><td><code>%</code> — любые символы, <code>_</code> — один</td></tr>
+      <tr><td>Шаблон без регистра</td><td><code>name ILIKE '%smith%'</code></td><td>Postgres: <code>ILIKE</code> игнорирует регистр</td></tr>
+      <tr><td>Только уникальные</td><td><code>SELECT DISTINCT status …</code></td><td>убрать повторы строк</td></tr>
+      <tr><td>Сортировка</td><td><code>ORDER BY price DESC, name</code></td><td>несколько ключей; <code>DESC</code> — по убыванию</td></tr>
+      <tr><td>NULL в конец</td><td><code>ORDER BY country NULLS LAST</code></td><td>куда девать NULL при сортировке</td></tr>
+      <tr><td>Постранично</td><td><code>LIMIT 3 OFFSET 3</code></td><td>взять 3 строки, пропустив первые 3</td></tr>
+    </tbody>
+  </table>
+
+  <p>Поиграй вживую: поменяй условие, добавь <code>ORDER BY</code>, попробуй <code>LIMIT</code>.</p>
+  <div class="sql-playground" data-height="110">
+    <script type="text/plain" class="starter">SELECT name, price
+FROM products
+WHERE price BETWEEN 20 AND 60
+ORDER BY price DESC
+LIMIT 5;</script>
+  </div>
+
+  <hr>
+
+  <div class="exset-head">
+    <h2><span class="num">§3</span> Практика · 12 упражнений</h2>
+    <span class="progress" data-progress>решено 0 / 12</span>
+  </div>
+  <p>Пиши запрос, жми «Проверить» (<code>⌘/Ctrl+Enter</code>). Сначала пробуй сам; подсказка и решение — рядом, но
+  бери их только когда действительно застрял (усилие памяти = прочный навык). Держи <a href="../reference/schema.html">схему</a> под рукой.</p>
+
+  <div class="sql-exercise" data-num="1">
+    <p class="task"><span class="qnum">1.</span> Выведи <code>name</code> всех товаров из категории с <code>category_id = 2</code> (Books).</p>
+    <script type="text/plain" class="hint">Одно условие в WHERE: category_id = 2. В SELECT — только name.</script>
+    <script type="text/plain" class="solution">SELECT name FROM products WHERE category_id = 2;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="2">
+    <p class="task"><span class="qnum">2.</span> Выведи <code>name</code> и <code>price</code> товаров, чья цена <b>от 20 до 40 включительно</b>. Используй <code>BETWEEN</code>.</p>
+    <script type="text/plain" class="hint">price BETWEEN 20 AND 40 — обе границы попадают в результат.</script>
+    <script type="text/plain" class="solution">SELECT name, price FROM products WHERE price BETWEEN 20 AND 40;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="3">
+    <p class="task"><span class="qnum">3.</span> Выведи <b>все различные</b> значения <code>status</code> из таблицы <code>orders</code> (без повторов).</p>
+    <script type="text/plain" class="hint">DISTINCT убирает дубликаты строк: SELECT DISTINCT status ...</script>
+    <script type="text/plain" class="solution">SELECT DISTINCT status FROM orders;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="4" data-order="true">
+    <p class="task"><span class="qnum">4.</span> <b>Пять самых дешёвых</b> товаров: <code>name</code> и <code>price</code>, по возрастанию цены. (важен порядок)</p>
+    <script type="text/plain" class="hint">ORDER BY price ASC (ASC — по умолчанию) + LIMIT 5.</script>
+    <script type="text/plain" class="solution">SELECT name, price FROM products ORDER BY price ASC LIMIT 5;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="5">
+    <p class="task"><span class="qnum">5.</span> Выведи <code>name</code> и <code>category_id</code> товаров из категорий <b>1 или 5</b>. Используй <code>IN</code>.</p>
+    <script type="text/plain" class="hint">category_id IN (1, 5) — короче, чем OR.</script>
+    <script type="text/plain" class="solution">SELECT name, category_id FROM products WHERE category_id IN (1, 5);</script>
+  </div>
+
+  <div class="sql-exercise" data-num="6">
+    <p class="task"><span class="qnum">6.</span> Выведи <code>name</code> товаров, чьё название <b>начинается на «C»</b>. Используй <code>LIKE</code>.</p>
+    <script type="text/plain" class="hint">Шаблон 'C%' — «C», а дальше что угодно. Регистр в LIKE важен.</script>
+    <script type="text/plain" class="solution">SELECT name FROM products WHERE name LIKE 'C%';</script>
+  </div>
+
+  <div class="sql-exercise" data-num="7">
+    <p class="task"><span class="qnum">7.</span> Найди покупателя, в чьём имени встречается <code>smith</code> <b>без учёта регистра</b>. Выведи <code>name</code>.</p>
+    <script type="text/plain" class="hint">Обычный LIKE не поймает 'Smith' по шаблону 'smith'. В Postgres есть ILIKE. Шаблон: '%smith%'.</script>
+    <script type="text/plain" class="solution">SELECT name FROM customers WHERE name ILIKE '%smith%';</script>
+  </div>
+
+  <div class="sql-exercise" data-num="8" data-order="true">
+    <p class="task"><span class="qnum">8.</span> Отсортируй товары по цене <b>по убыванию</b> и выведи <b>вторую «страницу»</b> по 3 товара — то есть <code>name</code> и <code>price</code> для мест 4–6. Используй <code>LIMIT</code> и <code>OFFSET</code>. (важен порядок)</p>
+    <script type="text/plain" class="hint">ORDER BY price DESC, затем пропусти первые 3 и возьми 3: LIMIT 3 OFFSET 3.</script>
+    <script type="text/plain" class="solution">SELECT name, price FROM products ORDER BY price DESC LIMIT 3 OFFSET 3;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="9">
+    <p class="task"><span class="qnum">9.</span> Выведи <code>name</code>, <code>category_id</code>, <code>price</code> товаров, которые
+    <b>либо</b> из категории 1 и дешевле 50, <b>либо</b> дороже 100 (независимо от категории). Следи за скобками!</p>
+    <script type="text/plain" class="hint">AND связывает сильнее, чем OR. Нужны скобки: (category_id = 1 AND price < 50) OR price > 100.</script>
+    <script type="text/plain" class="solution">SELECT name, category_id, price
+FROM products
+WHERE (category_id = 1 AND price < 50) OR price > 100;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="10" data-order="true">
+    <p class="task"><span class="qnum">10.</span> Выведи <code>category_id</code>, <code>name</code>, <code>price</code> <b>всех</b> товаров: сначала по <code>category_id</code> по возрастанию, а внутри категории — по <code>price</code> по убыванию. (важен порядок)</p>
+    <script type="text/plain" class="hint">Два ключа сортировки через запятую: ORDER BY category_id ASC, price DESC.</script>
+    <script type="text/plain" class="solution">SELECT category_id, name, price
+FROM products
+ORDER BY category_id ASC, price DESC;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="11" data-order="true">
+    <p class="task"><span class="qnum">11.</span> Выведи <code>name</code> и <code>country</code> всех покупателей: отсортируй по <code>country</code> по алфавиту, покупателей <b>без страны (NULL) — в самый конец</b>, а при равной стране — по <code>name</code>. (важен порядок)</p>
+    <script type="text/plain" class="hint">ORDER BY country ASC NULLS LAST, name ASC. NULLS LAST отправляет NULL в конец.</script>
+    <script type="text/plain" class="solution">SELECT name, country
+FROM customers
+ORDER BY country ASC NULLS LAST, name ASC;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="12" data-order="true">
+    <p class="task"><span class="qnum">12.</span> <b>Капстоун.</b> Три самых свежих заказа со статусом <code>paid</code>: выведи <code>order_id</code> и <code>created_at</code>, самые новые сверху. (важен порядок)</p>
+    <script type="text/plain" class="hint">Собери три части: WHERE status = 'paid', затем ORDER BY created_at DESC, затем LIMIT 3.</script>
+    <script type="text/plain" class="solution">SELECT order_id, created_at
+FROM orders
+WHERE status = 'paid'
+ORDER BY created_at DESC
+LIMIT 3;</script>
+  </div>
+
+  <div class="callout trap">
+    <span class="label">Частая ловушка</span>
+    <p>Строки в SQL — в <b>одинарных</b> кавычках: <code>'paid'</code>, не <code>"paid"</code>. Двойные кавычки в Postgres
+    означают <em>имя столбца/таблицы</em>, а не текст. И помни: <code>ORDER BY</code> без явного <code>ASC/DESC</code> — это <code>ASC</code>.</p>
+  </div>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Спроси учителя.</b> Застрял на упражнении, или решение непонятно — напиши номер в чат, разберём по шагам.
+    Как решишь все 12 — скажи, и пойдём в Тему 02 (NULL и трёхзначная логика — там самая «глубина»).</div>
+    <div class="lesson-nav">
+      <a href="./0001-playground-and-diagnostic.html">← Урок 0: Диагностика</a>
+      <a href="../index.html">К программе курса →</a>
+    </div>
+  </div>
+
+</div>
+<script type="module" src="../assets/engine.js"></script>

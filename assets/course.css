@@ -1,0 +1,447 @@
+/* =====================================================================
+   SQL Course — shared design system
+   Used by every lesson and reference doc so the course reads as one thing.
+   Aesthetic: calm, Tufte-ish, editorial. Serif prose, mono for code.
+   Works in light & dark (prefers-color-scheme). Prints cleanly.
+   ===================================================================== */
+
+:root {
+  --ink:        #1e1b16;
+  --ink-soft:   #4a443b;
+  --ink-faint:  #6f685c;
+  --paper:      #fbf9f4;
+  --paper-2:    #f3efe6;
+  --rule:       #e2dccf;
+  --rule-2:     #d3cbb8;
+  --accent:     #7a1f1f;   /* deep red — links, emphasis */
+  --accent-2:   #2f5d50;   /* pine green — success accents */
+  --gold:       #9a6b00;
+  --ok-bg:      #e7f1ea;
+  --ok-fg:      #1f5138;
+  --err-bg:     #f7e6e3;
+  --err-fg:     #8a2a1c;
+  --code-bg:    #f3efe6;
+  --sel:        #f5e6c8;
+
+  --font-serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+  --font-sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:  ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --measure: 42rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:      #ece6da;
+    --ink-soft: #c3bcac;
+    --ink-faint:#8f887a;
+    --paper:    #16140f;
+    --paper-2:  #201d16;
+    --rule:     #322d24;
+    --rule-2:   #443d31;
+    --accent:   #e2857a;
+    --accent-2: #7fc4ad;
+    --gold:     #d3a53a;
+    --ok-bg:    #16281f;
+    --ok-fg:    #7fd0a3;
+    --err-bg:   #2c1a17;
+    --err-fg:   #e79c8e;
+    --code-bg:  #201d16;
+    --sel:      #3a2f18;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--sel); }
+
+.wrap {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 3.2rem 1.4rem 6rem;
+}
+.wrap.wide { max-width: 58rem; }
+
+/* ---- Masthead / breadcrumb ---- */
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: var(--font-sans);
+  font-size: .78rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: .7rem;
+  margin-bottom: 2.4rem;
+}
+.masthead a { color: var(--ink-faint); text-decoration: none; }
+.masthead a:hover { color: var(--accent); }
+.masthead .course-tag { font-weight: 700; color: var(--ink-soft); }
+
+/* ---- Typography ---- */
+h1, h2, h3 { font-weight: 700; line-height: 1.18; color: var(--ink); }
+h1 {
+  font-size: 2.35rem;
+  margin: .2rem 0 .4rem;
+  letter-spacing: -.01em;
+}
+.subtitle {
+  font-family: var(--font-sans);
+  font-size: 1.02rem;
+  color: var(--ink-faint);
+  margin: 0 0 2.2rem;
+  font-style: normal;
+}
+h2 {
+  font-size: 1.5rem;
+  margin: 2.8rem 0 .8rem;
+  padding-top: .4rem;
+}
+h2 .num {
+  font-family: var(--font-mono);
+  font-size: .95rem;
+  color: var(--accent);
+  margin-right: .5rem;
+}
+h3 { font-size: 1.15rem; margin: 1.8rem 0 .5rem; }
+
+p { margin: 0 0 1.05rem; }
+strong { font-weight: 700; }
+em { font-style: italic; }
+
+a { color: var(--accent); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+a:hover { text-decoration: none; }
+
+ul, ol { margin: 0 0 1.1rem; padding-left: 1.4rem; }
+li { margin: .3rem 0; }
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 2.6rem 0;
+}
+
+small { font-size: .82em; color: var(--ink-faint); }
+
+/* ---- Inline + block code ---- */
+code {
+  font-family: var(--font-mono);
+  font-size: .84em;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: .08em .34em;
+}
+pre {
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  line-height: 1.5;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-2);
+  border-radius: 6px;
+  padding: .9rem 1rem;
+  overflow-x: auto;
+  margin: 0 0 1.2rem;
+}
+pre code { background: none; border: none; padding: 0; font-size: 1em; }
+
+/* keyword tint for hand-written snippets */
+.kw { color: var(--accent); font-weight: 600; }
+
+/* ---- Callouts ---- */
+.callout {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  background: var(--paper-2);
+  border-radius: 6px;
+  padding: 1rem 1.15rem;
+  margin: 1.4rem 0;
+  font-size: .96rem;
+}
+.callout.win    { border-left-color: var(--accent-2); }
+.callout.trap   { border-left-color: var(--gold); }
+.callout .label {
+  font-family: var(--font-sans);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-faint);
+  display: block;
+  margin-bottom: .35rem;
+}
+.callout p:last-child { margin-bottom: 0; }
+
+/* ---- Citations ---- */
+.cite {
+  font-family: var(--font-sans);
+  font-size: .8rem;
+  color: var(--ink-faint);
+}
+.cite a { color: var(--ink-soft); }
+sup.ref a {
+  font-family: var(--font-sans);
+  font-size: .68em;
+  text-decoration: none;
+  color: var(--accent);
+  padding: 0 .1em;
+}
+
+/* ---- Primary source box ---- */
+.source-box {
+  font-family: var(--font-sans);
+  font-size: .9rem;
+  border: 1px dashed var(--rule-2);
+  border-radius: 6px;
+  padding: .9rem 1.1rem;
+  margin: 1.6rem 0;
+  background: var(--paper-2);
+}
+.source-box .label {
+  font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint); font-weight: 700; display: block; margin-bottom: .3rem;
+}
+
+/* ---- Tables (reference / data dictionary) ---- */
+table.data {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: .82rem;
+  margin: 0 0 1.4rem;
+}
+table.data th, table.data td {
+  text-align: left;
+  padding: .4rem .6rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+table.data th {
+  font-weight: 700;
+  color: var(--ink-soft);
+  border-bottom: 2px solid var(--rule-2);
+}
+table.data code { font-size: .92em; }
+
+/* =====================================================================
+   Interactive SQL widgets (wired by engine.js)
+   ===================================================================== */
+
+.sql-widget {
+  border: 1px solid var(--rule-2);
+  border-radius: 8px;
+  background: var(--paper-2);
+  margin: 1.5rem 0;
+  overflow: hidden;
+}
+.sql-widget .task {
+  font-family: var(--font-sans);
+  font-size: .95rem;
+  padding: .9rem 1.1rem .2rem;
+  margin: 0;
+}
+.sql-widget .task .qnum {
+  display: inline-block;
+  font-weight: 700;
+  color: var(--accent);
+  margin-right: .4rem;
+}
+.sql-editor {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--rule);
+  background: var(--code-bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: .84rem;
+  line-height: 1.5;
+  padding: .8rem 1rem;
+  resize: vertical;
+  min-height: 4.5rem;
+  display: block;
+  margin-top: .8rem;
+  tab-size: 2;
+}
+.sql-editor:focus { outline: 2px solid var(--accent-2); outline-offset: -2px; }
+
+.sql-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .55rem .8rem;
+  border-top: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+.btn {
+  font-family: var(--font-sans);
+  font-size: .82rem;
+  font-weight: 600;
+  border: 1px solid var(--rule-2);
+  border-radius: 6px;
+  padding: .35rem .8rem;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); color: #fff; }
+.btn.ghost { background: transparent; }
+.btn .kbd { opacity: .6; font-size: .9em; margin-left: .3em; }
+
+.sql-status {
+  font-family: var(--font-sans);
+  font-size: .82rem;
+  margin-left: auto;
+  font-weight: 600;
+}
+.sql-status.ok  { color: var(--ok-fg); }
+.sql-status.err { color: var(--err-fg); }
+
+.sql-output { padding: 0 .8rem .3rem; }
+.sql-output:empty { display: none; }
+
+.sql-message {
+  font-family: var(--font-sans);
+  font-size: .86rem;
+  border-radius: 6px;
+  padding: .55rem .8rem;
+  margin: .6rem 0;
+}
+.sql-message.ok  { background: var(--ok-bg);  color: var(--ok-fg); }
+.sql-message.err { background: var(--err-bg); color: var(--err-fg); }
+
+.result-scroll { overflow-x: auto; margin: .6rem 0 .9rem; }
+table.result {
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  min-width: 100%;
+}
+table.result th, table.result td {
+  border: 1px solid var(--rule);
+  padding: .28rem .55rem;
+  text-align: left;
+  white-space: nowrap;
+}
+table.result th {
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+}
+table.result td.null { color: var(--ink-faint); font-style: italic; }
+table.result tr:nth-child(even) td { background: rgba(0,0,0,.02); }
+.result-meta { font-family: var(--font-sans); font-size: .76rem; color: var(--ink-faint); margin: 0 0 .5rem; }
+
+.hint-box { padding: 0 .8rem .8rem; }
+.hint-box details { font-family: var(--font-sans); font-size: .86rem; }
+.hint-box summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.hint-box .solution pre { margin-top: .6rem; }
+
+/* ---- Multiple choice quiz ---- */
+.quiz { margin: 1.5rem 0; }
+.quiz .q {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: .98rem;
+  margin: 0 0 .7rem;
+}
+.quiz .opts { list-style: none; padding: 0; margin: 0; }
+.quiz .opts li { margin: .4rem 0; }
+.quiz .opt {
+  display: block; width: 100%; text-align: left;
+  font-family: var(--font-mono); font-size: .82rem;
+  border: 1px solid var(--rule-2); border-radius: 6px;
+  padding: .5rem .8rem; background: var(--paper); color: var(--ink);
+  cursor: pointer;
+}
+.quiz .opt:hover { border-color: var(--accent); }
+.quiz .opt.correct { background: var(--ok-bg); border-color: var(--ok-fg); color: var(--ok-fg); }
+.quiz .opt.wrong   { background: var(--err-bg); border-color: var(--err-fg); color: var(--err-fg); }
+.quiz .explain {
+  font-family: var(--font-sans); font-size: .86rem; color: var(--ink-soft);
+  margin-top: .6rem; padding-left: .2rem; display: none;
+}
+.quiz .explain.show { display: block; }
+
+/* ---- Progress dots for exercise sets ---- */
+.exset-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem; margin: 2.4rem 0 .4rem;
+}
+.exset-head h2 { margin: 0; }
+.progress {
+  font-family: var(--font-mono); font-size: .8rem; color: var(--ink-faint);
+  white-space: nowrap;
+}
+.progress b { color: var(--accent-2); }
+
+/* ---- Cards (syllabus) ---- */
+.cards { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); margin: 1.4rem 0; }
+.card {
+  border: 1px solid var(--rule); border-radius: 8px; padding: 1rem 1.1rem;
+  background: var(--paper-2); text-decoration: none; color: var(--ink); display: block;
+}
+.card:hover { border-color: var(--accent); }
+.card .k { font-family: var(--font-mono); font-size: .74rem; color: var(--accent); }
+.card h3 { margin: .3rem 0 .3rem; font-size: 1.02rem; }
+.card p { font-family: var(--font-sans); font-size: .83rem; color: var(--ink-soft); margin: 0; }
+.card .meta { font-family: var(--font-sans); font-size: .74rem; color: var(--ink-faint); margin-top: .5rem; }
+.card.locked { opacity: .55; }
+.card.locked:hover { border-color: var(--rule); }
+
+/* ---- Footer / ask-your-teacher ---- */
+.lesson-footer {
+  margin-top: 3.5rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.3rem;
+  font-family: var(--font-sans);
+  font-size: .9rem;
+  color: var(--ink-soft);
+}
+.lesson-footer .ask {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent-2);
+  border-radius: 6px;
+  padding: .9rem 1.1rem;
+  margin-bottom: 1.2rem;
+}
+.lesson-nav { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.lesson-nav a { font-weight: 600; }
+
+.boot-note {
+  font-family: var(--font-sans); font-size: .8rem; color: var(--ink-faint);
+  border: 1px dashed var(--rule-2); border-radius: 6px; padding: .5rem .8rem; margin: 1rem 0;
+}
+.boot-note.err { color: var(--err-fg); border-color: var(--err-fg); }
+
+/* ---- Print ---- */
+@media print {
+  :root { --paper:#fff; --paper-2:#fff; --code-bg:#f4f4f4; }
+  body { font-size: 11pt; color: #000; }
+  .sql-toolbar, .btn, .masthead a, .lesson-nav { display: none; }
+  .wrap { max-width: none; padding: 0; }
+  pre, .callout, table.data th, table.data td { border-color: #bbb; }
+  a { color: #000; text-decoration: underline; }
+  .sql-widget { break-inside: avoid; }
+}
