@@ -1,0 +1,252 @@
+<meta charset="utf-8">
+<title>Тема 04 · Агрегация: GROUP BY / HAVING — SQL-курс</title>
+<link rel="stylesheet" href="../assets/course.css">
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="../index.html">Курс</a> ·
+      <a href="../reference/schema.html">Схема БД</a> ·
+      <a href="../reference/glossary.html">Глоссарий</a>
+    </nav>
+  </div>
+
+  <h1>Тема 04 — Агрегация: GROUP BY / HAVING</h1>
+  <p class="subtitle">Свернуть много строк в одно число на группу. Это ровно то место, где ты в диагностике «забывал <code>GROUP BY</code>». Разберёмся так, чтобы забыть было нельзя.</p>
+
+  <div class="callout win">
+    <span class="label">Что заберёшь с урока</span>
+    <p>Поймёшь <b>золотое правило</b>: любой столбец в <code>SELECT</code>, который не внутри агрегата, обязан быть в
+    <code>GROUP BY</code>. Научишься считать по группам (<code>COUNT</code>, <code>SUM</code>, <code>AVG</code>…),
+    фильтровать группы через <code>HAVING</code> и видеть разницу между <code>WHERE</code> и <code>HAVING</code>.</p>
+  </div>
+
+  <div class="source-box">
+    <span class="label">Главный источник по теме</span>
+    PostgreSQL Docs — <a href="https://www.postgresql.org/docs/current/tutorial-agg.html" target="_blank" rel="noopener">Aggregate Functions</a>
+    (первоисточник, короткий раздел туториала) и справочник <a href="https://www.postgresql.org/docs/current/functions-aggregate.html" target="_blank" rel="noopener">Aggregate Functions list</a>.
+    Простыми словами — <a href="https://mode.com/sql-tutorial/sql-group-by/" target="_blank" rel="noopener">Mode SQL: GROUP BY</a>.
+  </div>
+
+  <h2><span class="num">§1</span> Агрегат сворачивает строки</h2>
+  <p>Обычный <code>SELECT</code> отдаёт строку на строку. <b>Агрегатная функция</b> берёт <em>много</em> строк и возвращает
+  <em>одно</em> значение. Без <code>GROUP BY</code> она сворачивает всю таблицу в одну строку:</p>
+  <table class="data">
+    <thead><tr><th>Функция</th><th>Что считает</th><th>Заметка</th></tr></thead>
+    <tbody>
+      <tr><td><code>COUNT(*)</code></td><td>сколько строк</td><td>считает все строки группы</td></tr>
+      <tr><td><code>COUNT(col)</code></td><td>сколько <b>не-NULL</b> значений в столбце</td><td><code>NULL</code> не считается</td></tr>
+      <tr><td><code>SUM(col)</code></td><td>сумма</td><td>только числа</td></tr>
+      <tr><td><code>AVG(col)</code></td><td>среднее</td><td>часто оборачивают в <code>ROUND(…, 2)</code></td></tr>
+      <tr><td><code>MIN(col)</code> / <code>MAX(col)</code></td><td>минимум / максимум</td><td>работает и с датами, и с текстом</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="num">§2</span> Золотое правило GROUP BY</h2>
+  <p>Как только в <code>SELECT</code> появляется агрегат <b>вместе</b> с обычным столбцом, Postgres требует сгруппировать по этому столбцу.
+  Вот тот самый твой пробел на живом примере — запусти как есть, увидишь <b>ошибку</b>:</p>
+
+  <div class="sql-playground" data-height="70">
+    <script type="text/plain" class="starter">SELECT category_id, COUNT(*) FROM products;</script>
+  </div>
+
+  <p>Postgres ответит примерно так: <code>column "products.category_id" must appear in the GROUP BY clause…</code>.
+  Логика простая: ты просишь <b>одно</b> число (<code>COUNT</code>) и <b>при этом</b> столбец <code>category_id</code>, у которого
+  много разных значений. Postgres не знает, какое показать — пока ты не скажешь «по одному числу <b>на каждую</b> категорию».
+  Добавь <code>GROUP BY category_id</code> — и всё встаёт на места:</p>
+
+  <div class="sql-playground" data-height="90">
+    <script type="text/plain" class="starter">SELECT category_id, COUNT(*) AS products_cnt
+FROM products
+GROUP BY category_id;</script>
+  </div>
+
+  <p><b>Правило:</b> каждый столбец из <code>SELECT</code>, который <em>не завёрнут</em> в агрегат, должен стоять в <code>GROUP BY</code>.
+  Забыл — получил ту самую ошибку. Теперь ты её знаешь в лицо.</p>
+
+  <div class="quiz" data-answer="2">
+    <p class="q">Проверка: <code>SELECT category_id, COUNT(*) FROM products;</code> — без <code>GROUP BY</code>. Что сделает Postgres?</p>
+    <ul class="opts">
+      <li><button class="opt">Вернёт по одной строке на каждую категорию</button></li>
+      <li><button class="opt">Ошибка: column must appear in GROUP BY</button></li>
+      <li><button class="opt">Свернёт всё в одну строку без ошибки</button></li>
+      <li><button class="opt">Молча проигнорирует столбец category_id</button></li>
+    </ul>
+    <div class="explain">Верно: смешивать неагрегированный <code>category_id</code> с <code>COUNT(*)</code> без
+    <code>GROUP BY</code> нельзя — Postgres даёт ошибку «must appear in the GROUP BY clause».
+    Либо группируй по <code>category_id</code>, либо убери его из <code>SELECT</code>.</div>
+  </div>
+
+  <h2><span class="num">§3</span> Порядок выполнения и WHERE vs HAVING</h2>
+  <p>Как и в Теме 01, важен реальный порядок. Для агрегаций он такой:</p>
+<pre><span class="kw">FROM</span> / <span class="kw">JOIN</span>  → собрать строки
+<span class="kw">WHERE</span>       → отфильтровать <b>строки</b> (до группировки)
+<span class="kw">GROUP BY</span>    → собрать строки в группы
+<span class="kw">HAVING</span>      → отфильтровать <b>группы</b> (после агрегации)
+<span class="kw">SELECT</span>      → вычислить агрегаты и столбцы
+<span class="kw">ORDER BY</span>    → отсортировать результат</pre>
+  <p>Отсюда всё главное про эти два фильтра:</p>
+  <ul>
+    <li><code>WHERE</code> отсекает <b>строки ещё до</b> группировки. В нём <b>нельзя</b> писать агрегаты (их ещё не посчитали).</li>
+    <li><code>HAVING</code> отсекает <b>целые группы после</b> подсчёта. В нём <b>можно и нужно</b> писать агрегаты:
+      <code>HAVING COUNT(*) &gt; 3</code>.</li>
+  </ul>
+  <p>Правило-подсказка: условие на <em>отдельную строку</em> → <code>WHERE</code>. Условие на <em>итог группы</em> → <code>HAVING</code>.</p>
+
+  <div class="quiz" data-answer="2">
+    <p class="q">Проверка: где отфильтровать «оставить только группы, где <code>COUNT(*) &gt; 3</code>»?</p>
+    <ul class="opts">
+      <li><button class="opt">В WHERE, потому что это тоже фильтр</button></li>
+      <li><button class="opt">В HAVING, он фильтрует группы после агрегации</button></li>
+      <li><button class="opt">В SELECT, рядом с самим COUNT</button></li>
+      <li><button class="opt">В ORDER BY, через условие сортировки</button></li>
+    </ul>
+    <div class="explain">Верно: агрегат (<code>COUNT(*)</code>) существует только <em>после</em> <code>GROUP BY</code>,
+    поэтому фильтр по нему живёт в <code>HAVING</code>. В <code>WHERE</code> агрегата ещё нет — там фильтруют исходные строки.</div>
+  </div>
+
+  <h2><span class="num">§4</span> Бонус Postgres: FILTER</h2>
+  <p>Иногда в одной строке нужно несколько «условных» подсчётов. В Postgres есть красивый приём — <code>FILTER</code>:</p>
+<pre>SELECT COUNT(*)                                   AS total,
+       COUNT(*) <span class="kw">FILTER</span> (<span class="kw">WHERE</span> status = 'paid') AS paid
+FROM orders;</pre>
+  <p>Это чище, чем городить <code>CASE</code> внутри <code>SUM</code>. Пригодится в упражнении 11.</p>
+
+  <hr>
+
+  <div class="exset-head">
+    <h2><span class="num">§5</span> Практика · 12 упражнений</h2>
+    <span class="progress" data-progress>решено 0 / 12</span>
+  </div>
+  <p>Пиши запрос, жми «Проверить» (<code>⌘/Ctrl+Enter</code>). Сначала сам — усилие памяти строит навык. Подсказка и решение рядом,
+  бери их только когда реально застрял. Держи <a href="../reference/schema.html">схему</a> под рукой. Задачи идут по нарастанию.</p>
+
+  <div class="sql-exercise" data-num="1">
+    <p class="task"><span class="qnum">1.</span> Разминка (это ты уже умеешь): сколько заказов в <b>каждом статусе</b>? Выведи <code>status</code> и количество.</p>
+    <script type="text/plain" class="hint">GROUP BY status, а количество — COUNT(*).</script>
+    <script type="text/plain" class="solution">SELECT status, COUNT(*) AS cnt
+FROM orders
+GROUP BY status;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="2">
+    <p class="task"><span class="qnum">2.</span> Сколько <b>всего</b> товаров в таблице <code>products</code>? Одно число (без <code>GROUP BY</code> — сворачиваем всю таблицу).</p>
+    <script type="text/plain" class="hint">Агрегат без GROUP BY возвращает одну строку по всей таблице: SELECT COUNT(*) FROM products;</script>
+    <script type="text/plain" class="solution">SELECT COUNT(*) FROM products;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="3">
+    <p class="task"><span class="qnum">3.</span> В одной строке выведи <b>самую низкую</b> и <b>самую высокую</b> цену товара (два столбца).</p>
+    <script type="text/plain" class="hint">Два агрегата рядом: MIN(price) и MAX(price). GROUP BY не нужен.</script>
+    <script type="text/plain" class="solution">SELECT MIN(price), MAX(price) FROM products;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="4">
+    <p class="task"><span class="qnum">4.</span> Сколько товаров в <b>каждой категории</b>? Выведи <code>category_id</code> и количество.
+    <small>(Заметь: категория 7 «Garden» не появится — у неё нет товаров. Как её вернуть — тема JOIN вглубь.)</small></p>
+    <script type="text/plain" class="hint">GROUP BY category_id + COUNT(*). Одна строка на категорию.</script>
+    <script type="text/plain" class="solution">SELECT category_id, COUNT(*) AS cnt
+FROM products
+GROUP BY category_id;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="5">
+    <p class="task"><span class="qnum">5.</span> <b>Средняя цена</b> товара в каждой категории, округлённая до 2 знаков. Выведи <code>category_id</code> и среднюю цену.</p>
+    <script type="text/plain" class="hint">ROUND(AVG(price), 2). Не забудь GROUP BY category_id — иначе та самая ошибка.</script>
+    <script type="text/plain" class="solution">SELECT category_id, ROUND(AVG(price), 2) AS avg_price
+FROM products
+GROUP BY category_id;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="6">
+    <p class="task"><span class="qnum">6.</span> Оставь только категории, где <b>больше 3 товаров</b>. Выведи <code>category_id</code> и количество. Фильтр — по итогу группы!</p>
+    <script type="text/plain" class="hint">Фильтр по COUNT(*) идёт в HAVING, не в WHERE: ... GROUP BY category_id HAVING COUNT(*) > 3.</script>
+    <script type="text/plain" class="solution">SELECT category_id, COUNT(*) AS cnt
+FROM products
+GROUP BY category_id
+HAVING COUNT(*) > 3;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="7">
+    <p class="task"><span class="qnum">7.</span> Считай <b>только товары в наличии</b> (<code>stock &gt; 0</code>). Для каждой категории выведи, сколько таких товаров,
+    и оставь только категории, где их <b>3 или больше</b>. Здесь работают <b>оба</b> фильтра — <code>WHERE</code> и <code>HAVING</code>.</p>
+    <script type="text/plain" class="hint">WHERE stock > 0 отсекает строки ДО группировки. HAVING COUNT(*) >= 3 отсекает группы ПОСЛЕ. Порядок: WHERE ... GROUP BY ... HAVING ...</script>
+    <script type="text/plain" class="solution">SELECT category_id, COUNT(*) AS cnt
+FROM products
+WHERE stock > 0
+GROUP BY category_id
+HAVING COUNT(*) >= 3;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="8">
+    <p class="task"><span class="qnum">8.</span> В таблице <code>customers</code> одной строкой выведи два числа: <b>сколько всего</b> покупателей и у <b>скольких заполнена</b>
+    страна (<code>country</code>). Числа разные — подумай почему.</p>
+    <script type="text/plain" class="hint">COUNT(*) считает все строки; COUNT(country) пропускает NULL. У двух покупателей country = NULL.</script>
+    <script type="text/plain" class="solution">SELECT COUNT(*), COUNT(country) FROM customers;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="9">
+    <p class="task"><span class="qnum">9.</span> <b>Выручка по категориям</b> (та самая задача 6 из диагностики — теперь с опорой). Для каждой категории, где были продажи,
+    выведи имя категории (<code>name</code>) и суммарную выручку — сумму <code>quantity * unit_price</code> по проданным товарам.</p>
+    <script type="text/plain" class="hint">Три таблицы: categories → products → order_items. Считаем SUM(oi.quantity * oi.unit_price). GROUP BY по имени категории. Только INNER JOIN — категории без продаж сами отсеются.</script>
+    <script type="text/plain" class="solution">SELECT c.name, SUM(oi.quantity * oi.unit_price) AS revenue
+FROM categories c
+JOIN products p     ON p.category_id = c.category_id
+JOIN order_items oi ON oi.product_id = p.product_id
+GROUP BY c.name;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="10">
+    <p class="task"><span class="qnum">10.</span> Найди покупателей с <b>2 и более заказами</b>. Выведи их <code>name</code> и число заказов.</p>
+    <script type="text/plain" class="hint">JOIN customers → orders, GROUP BY имени покупателя, затем HAVING COUNT(*) >= 2.</script>
+    <script type="text/plain" class="solution">SELECT cu.name, COUNT(*) AS orders_cnt
+FROM customers cu
+JOIN orders o ON o.customer_id = cu.customer_id
+GROUP BY cu.name
+HAVING COUNT(*) >= 2;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="11">
+    <p class="task"><span class="qnum">11.</span> Одной строкой по всем заказам посчитай три числа: <b>всего заказов</b>, <b>оплачено</b> (<code>status = 'paid'</code>)
+    и <b>отменено</b> (<code>status = 'cancelled'</code>). Используй <code>COUNT(*) FILTER (WHERE …)</code>.</p>
+    <script type="text/plain" class="hint">SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE status='paid') AS paid, COUNT(*) FILTER (WHERE status='cancelled') AS cancelled FROM orders;</script>
+    <script type="text/plain" class="solution">SELECT COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE status = 'paid')      AS paid,
+       COUNT(*) FILTER (WHERE status = 'cancelled') AS cancelled
+FROM orders;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="12" data-order="true">
+    <p class="task"><span class="qnum">12.</span> <b>Капстоун.</b> Только по заказам со статусом <code>paid</code>: для каждого покупателя (<code>name</code>) посчитай его
+    суммарную выручку (сумма <code>quantity * unit_price</code> по позициям его <code>paid</code>-заказов). Оставь только тех, у кого сумма
+    <b>больше 100</b>, и отсортируй по сумме <b>по убыванию</b>. (важен порядок)</p>
+    <script type="text/plain" class="hint">Собери всё вместе: JOIN customers→orders→order_items, WHERE o.status='paid' (фильтр строк), GROUP BY cu.name, HAVING SUM(...) > 100 (фильтр групп), ORDER BY ... DESC.</script>
+    <script type="text/plain" class="solution">SELECT cu.name, SUM(oi.quantity * oi.unit_price) AS spent
+FROM customers cu
+JOIN orders o       ON o.customer_id = cu.customer_id
+JOIN order_items oi ON oi.order_id = o.order_id
+WHERE o.status = 'paid'
+GROUP BY cu.name
+HAVING SUM(oi.quantity * oi.unit_price) > 100
+ORDER BY spent DESC;</script>
+  </div>
+
+  <div class="callout trap">
+    <span class="label">Частые ловушки</span>
+    <p>1) Неагрегированный столбец в <code>SELECT</code> без <code>GROUP BY</code> → ошибка «must appear in the GROUP BY clause».
+    2) Условие по <code>COUNT/SUM</code> нельзя класть в <code>WHERE</code> — только в <code>HAVING</code>.
+    3) <code>COUNT(col)</code> молча пропускает <code>NULL</code>; <code>COUNT(*)</code> — нет.</p>
+  </div>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Спроси учителя.</b> Застрял на упражнении или решение непонятно — напиши номер в чат, разберём по шагам.
+    Решишь все 12 — скажи, сколько получилось и где притормозил; по этому построю следующую тему (JOIN вглубь или подзапросы).</div>
+    <div class="lesson-nav">
+      <a href="./0001-playground-and-diagnostic.html">← Урок 0: Диагностика</a>
+      <a href="../reference/syllabus.html">Программа курса →</a>
+    </div>
+  </div>
+
+</div>
+<script type="module" src="../assets/engine.js"></script>

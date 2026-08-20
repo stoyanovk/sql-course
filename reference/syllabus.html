@@ -20,6 +20,9 @@
     <p>Порядок идёт от повторения к глубине. Начинаем с диагностики, чтобы не тратить время на то, что ты уже знаешь.
     Темы <b>4–8</b> (агрегации, JOIN вглубь, подзапросы, CTE, оконные функции) — ядро «глубины», которого тебе не хватает.
     Темы <b>11–13</b> (индексы/EXPLAIN, транзакции) — то, что отличает backend-инженера от «человека, пишущего SELECT».</p>
+    <p><b>После диагностики порядок изменён:</b> базовый <code>SELECT</code> (Тема 01) ты подтвердил — пропускаем повтор и
+    стартуем сразу с <b>Темы 04 (агрегация)</b>, твоего слабого места. К <code>NULL</code>/<code>CASE</code> (Темы 02–03) вернёмся,
+    вплетая их в практику.</p>
   </div>
 
   <div class="cards">
@@ -52,12 +55,12 @@
       <div class="meta">🔒 Дальше · ≥10 упр.</div>
     </div>
 
-    <div class="card locked">
+    <a class="card" href="../lessons/0003-aggregation-group-by-having.html">
       <span class="k">Тема 04</span>
       <h3>Агрегация: GROUP BY / HAVING</h3>
       <p>COUNT/SUM/AVG/MIN/MAX, группировка, HAVING, COUNT(*) vs COUNT(col), FILTER.</p>
-      <div class="meta">🔒 Ядро · ≥10 упр.</div>
-    </div>
+      <div class="meta">✅ Готов · ядро · 12 упр. · старт по диагностике</div>
+    </a>
 
     <div class="card locked">
       <span class="k">Тема 05</span>
