@@ -1,5 +1,7 @@
 # SQL-курс на PostgreSQL
 
+**Открыть онлайн:** https://stoyanovk.github.io/sql-course/
+
 Практический курс SQL для backend-разработки. Настоящий Postgres прямо в браузере
 (PGlite/WASM), авто-проверка каждого запроса. Цель — уверенно писать и читать
 сложные Postgres-запросы.
