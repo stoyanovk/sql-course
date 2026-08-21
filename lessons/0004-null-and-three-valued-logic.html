@@ -1,0 +1,241 @@
+<meta charset="utf-8">
+<title>Тема 02 · NULL и трёхзначная логика — SQL-курс</title>
+<link rel="stylesheet" href="../assets/course.css">
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="../index.html">Курс</a> ·
+      <a href="../reference/schema.html">Схема БД</a> ·
+      <a href="../reference/glossary.html">Глоссарий</a>
+    </nav>
+  </div>
+
+  <h1>Тема 02 — NULL и трёхзначная логика</h1>
+  <p class="subtitle">Здесь живёт «нет глубины». <code>NULL</code> ломает привычную логику тихо, без ошибки — и запрос молча возвращает не то. Разберём ловушки так, чтобы ты их видел заранее.</p>
+
+  <div class="callout win">
+    <span class="label">Что заберёшь с урока</span>
+    <p>Поймёшь, что <code>NULL</code> — это <b>«неизвестно»</b>, а не 0 и не пустая строка. Научишься проверять его через
+    <code>IS NULL</code>, «чинить» через <code>COALESCE</code>/<code>NULLIF</code>, и обходить две главные ловушки —
+    <code>&lt;&gt;</code> и <code>NOT IN</code>, которые молча теряют строки.</p>
+  </div>
+
+  <div class="source-box">
+    <span class="label">Главный источник по теме</span>
+    PostgreSQL Docs — <a href="https://www.postgresql.org/docs/current/functions-comparison.html" target="_blank" rel="noopener">Comparison Functions (IS NULL, IS DISTINCT FROM)</a>
+    и <a href="https://www.postgresql.org/docs/current/functions-conditional.html" target="_blank" rel="noopener">Conditional Expressions (COALESCE, NULLIF)</a>.
+    По-русски тот же материал — <a href="https://postgrespro.ru/docs/postgresql/current/functions-comparison" target="_blank" rel="noopener">Функции сравнения (postgrespro)</a>.
+  </div>
+
+  <h2><span class="num">§1</span> NULL — это «неизвестно», а не ноль</h2>
+  <p><code>NULL</code> значит «значения нет» / «неизвестно». Это <b>не</b> число 0 и <b>не</b> пустая строка <code>''</code>.
+  У Dmitry и Grace страна — <code>NULL</code> (мы просто не знаем её), а у Jack <code>NULL</code> — это email.
+  Раз значение неизвестно, любой вопрос про него получает ответ «а бог его знает» — и вот с этого начинаются проблемы.</p>
+
+  <h2><span class="num">§2</span> Три значения истины: TRUE, FALSE, UNKNOWN</h2>
+  <p>В обычных языках условие либо истина, либо ложь. В SQL их <b>три</b>: <code>TRUE</code>, <code>FALSE</code> и
+  <code>UNKNOWN</code>. Любое сравнение с <code>NULL</code> даёт <code>UNKNOWN</code> — даже <code>NULL = NULL</code>.
+  Запусти и посмотри (пустая ячейка в выводе — это и есть <code>NULL</code>/UNKNOWN):</p>
+
+  <div class="sql-playground" data-height="70">
+    <script type="text/plain" class="starter">SELECT NULL = NULL AS "null=null", NULL IS NULL AS "is null";</script>
+  </div>
+
+  <p>Первый столбец — пусто (UNKNOWN), второй — <code>t</code> (true). Вывод: <code>= NULL</code> и <code>&lt;&gt; NULL</code>
+  <b>никогда</b> не работают. Проверяют <code>NULL</code> только так:</p>
+  <ul>
+    <li><code>col IS NULL</code> — значение отсутствует;</li>
+    <li><code>col IS NOT NULL</code> — значение есть.</li>
+  </ul>
+  <p>И запомни главное про фильтр: <code>WHERE</code> оставляет строку, только если условие — <b>ровно TRUE</b>.
+  <code>FALSE</code> и <code>UNKNOWN</code> отбрасываются одинаково. Поэтому строка с <code>NULL</code> тихо выпадает из выборки.</p>
+
+  <div class="quiz" data-answer="3">
+    <p class="q">Сколько строк вернёт <code>SELECT * FROM customers WHERE country = NULL;</code>?</p>
+    <ul class="opts">
+      <li><button class="opt">Две строки — Dmitry и Grace</button></li>
+      <li><button class="opt">Все десять строк таблицы</button></li>
+      <li><button class="opt">Ноль строк — условие всегда UNKNOWN</button></li>
+      <li><button class="opt">Ошибку про неверный синтаксис</button></li>
+    </ul>
+    <div class="explain">Верно: <code>country = NULL</code> для каждой строки даёт <code>UNKNOWN</code>, а <code>WHERE</code> оставляет
+    только <code>TRUE</code>. Значит — 0 строк, без ошибки. Чтобы найти Dmitry и Grace, нужно <code>WHERE country IS NULL</code>.</div>
+  </div>
+
+  <h2><span class="num">§3</span> NULL «заразителен»: COALESCE и NULLIF</h2>
+  <p>Почти любое выражение с <code>NULL</code> внутри само становится <code>NULL</code>. <code>NULL + 5</code> → <code>NULL</code>.
+  <code>'Hi ' || NULL</code> → <code>NULL</code> (склейка строк тоже «заражается»). Два инструмента лечат это:</p>
+  <table class="data">
+    <thead><tr><th>Функция</th><th>Что делает</th><th>Пример</th></tr></thead>
+    <tbody>
+      <tr><td><code>COALESCE(a, b, …)</code></td><td>берёт <b>первое не-NULL</b> из списка</td><td><code>COALESCE(country, 'Unknown')</code> → страна или «Unknown»</td></tr>
+      <tr><td><code>NULLIF(a, b)</code></td><td>даёт <code>NULL</code>, если <code>a = b</code>; иначе <code>a</code></td><td><code>NULLIF(stock, 0)</code> → превращает 0 в <code>NULL</code></td></tr>
+    </tbody>
+  </table>
+  <p><code>COALESCE</code> — «подставь запасное значение вместо дырки». <code>NULLIF</code> — обратное: «сделай это значение дыркой».
+  Классика <code>NULLIF</code> — защита от деления на ноль: <code>x / NULLIF(y, 0)</code> вернёт <code>NULL</code> вместо ошибки.</p>
+
+  <h2><span class="num">§4</span> Две тихие ловушки: &lt;&gt; и NOT IN</h2>
+  <p>Хочешь «всех, кроме USA» и пишешь <code>WHERE country &lt;&gt; 'USA'</code>. Для Dmitry и Grace страна <code>NULL</code>,
+  значит <code>NULL &lt;&gt; 'USA'</code> → <code>UNKNOWN</code> → строка выпадает. Ты <b>молча потерял</b> два ряда, хотя они не из USA.</p>
+  <p>Ещё злее <code>NOT IN</code> со списком, где есть <code>NULL</code>: <code>x NOT IN ('USA', NULL)</code> становится
+  <code>UNKNOWN</code> для <b>всех</b> строк — запрос вернёт <b>ноль</b> строк. Классический баг на проде.</p>
+  <p>Как правильно:</p>
+  <ul>
+    <li>явно добавить <code>OR country IS NULL</code>, либо</li>
+    <li>использовать NULL-безопасное сравнение Postgres: <code>country IS DISTINCT FROM 'USA'</code> — оно считает
+      <code>NULL</code> «отличным от 'USA'» и вернёт TRUE, не UNKNOWN.</li>
+  </ul>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Что вернёт <code>SELECT name FROM customers WHERE country NOT IN ('USA', NULL);</code>?</p>
+    <ul class="opts">
+      <li><button class="opt">Ноль строк — из-за NULL в списке</button></li>
+      <li><button class="opt">Всех, кроме троих из USA</button></li>
+      <li><button class="opt">Только Dmitry и Grace без страны</button></li>
+      <li><button class="opt">Все десять строк без исключений</button></li>
+    </ul>
+    <div class="explain">Верно: <code>NULL</code> в списке делает <code>NOT IN</code> результатом <code>UNKNOWN</code> для каждой
+    строки, и <code>WHERE</code> отбрасывает все. Ноль строк. Именно поэтому <code>NOT IN</code> с возможным <code>NULL</code>
+    заменяют на <code>NOT EXISTS</code> или <code>IS DISTINCT FROM</code>.</div>
+  </div>
+
+  <h2><span class="num">§5</span> NULL в агрегатах и в JOIN</h2>
+  <p>Два факта на стыке с прошлыми темами (пригодятся в упражнениях):</p>
+  <ul>
+    <li><b>Агрегаты пропускают <code>NULL</code>.</b> <code>COUNT(col)</code>, <code>SUM</code>, <code>AVG</code> считают только
+      не-NULL значения; <code>COUNT(*)</code> считает <em>строки</em> и <code>NULL</code> не пропускает. (Это из
+      <a href="./0003-aggregation-group-by-having.html">Темы 04</a>.)</li>
+    <li><b><code>LEFT JOIN</code> сам рождает <code>NULL</code>.</b> Если справа пары нет — все её столбцы становятся
+      <code>NULL</code>. Отсюда приём «анти-join»: <code>LEFT JOIN … WHERE правая.id IS NULL</code> находит строки без пары.</li>
+  </ul>
+  <p>А из <a href="./0002-select-in-depth.html">Темы 01</a> вспомни: порядок <code>NULL</code> в сортировке задаётся отдельно —
+  <code>ORDER BY col NULLS LAST</code> (или <code>NULLS FIRST</code>).</p>
+
+  <hr>
+
+  <div class="exset-head">
+    <h2><span class="num">§6</span> Практика · 12 упражнений</h2>
+    <span class="progress" data-progress>решено 0 / 12</span>
+  </div>
+  <p>Пиши запрос, жми «Проверить» (<code>⌘/Ctrl+Enter</code>). Сначала думай сам — усилие памяти и строит навык.
+  Подсказка и решение рядом, бери их, только когда правда застрял. Держи <a href="../reference/schema.html">схему</a> под рукой.
+  Задачи идут по нарастанию.</p>
+
+  <div class="sql-exercise" data-num="1">
+    <p class="task"><span class="qnum">1.</span> Разминка. Выведи <code>name</code> покупателей, у которых <b>не указана</b> страна (<code>country</code>).</p>
+    <script type="text/plain" class="hint">Проверка на отсутствие значения — это IS NULL, а не = NULL: WHERE country IS NULL.</script>
+    <script type="text/plain" class="solution">SELECT name FROM customers WHERE country IS NULL;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="2">
+    <p class="task"><span class="qnum">2.</span> Наоборот: выведи <code>name</code> покупателей, у которых <b>есть</b> email.</p>
+    <script type="text/plain" class="hint">«Значение есть» → IS NOT NULL. У Jack email NULL, он выпадет.</script>
+    <script type="text/plain" class="solution">SELECT name FROM customers WHERE email IS NOT NULL;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="3">
+    <p class="task"><span class="qnum">3.</span> Одной строкой — два числа: <b>сколько всего</b> покупателей и у <b>скольких заполнен</b> <code>email</code>.
+    Числа должны отличаться.</p>
+    <script type="text/plain" class="hint">COUNT(*) считает все строки; COUNT(email) пропускает NULL. У одного покупателя email = NULL.</script>
+    <script type="text/plain" class="solution">SELECT COUNT(*), COUNT(email) FROM customers;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="4">
+    <p class="task"><span class="qnum">4.</span> Выведи <code>name</code> и страну каждого покупателя, но вместо пустой страны показывай текст
+    <code>'Unknown'</code>. Столбцы: <code>name</code>, <code>country</code>.</p>
+    <script type="text/plain" class="hint">COALESCE подставляет запасное значение вместо NULL: COALESCE(country, 'Unknown').</script>
+    <script type="text/plain" class="solution">SELECT name, COALESCE(country, 'Unknown') AS country FROM customers;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="5">
+    <p class="task"><span class="qnum">5.</span> Собери один столбец <code>label</code> вида <code>Alice Johnson (alice@example.com)</code>.
+    У кого email пустой — покажи <code>Jack Wilson (no email)</code>. (Без <code>COALESCE</code> вся склейка стала бы <code>NULL</code>.)</p>
+    <script type="text/plain" class="hint">Склейка через ||. Дырку в email закрой заранее: name || ' (' || COALESCE(email, 'no email') || ')'.</script>
+    <script type="text/plain" class="solution">SELECT name || ' (' || COALESCE(email, 'no email') || ')' AS label FROM customers;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="6">
+    <p class="task"><span class="qnum">6.</span> Для каждого товара выведи <code>name</code> и <code>price / stock</code> как <code>ratio</code>.
+    У двух товаров <code>stock = 0</code> — прямое деление даст ошибку. Сделай так, чтобы там был <code>NULL</code>, а не падение.</p>
+    <script type="text/plain" class="hint">Защита от деления на ноль — NULLIF: price / NULLIF(stock, 0). Делитель 0 превратится в NULL, и результат станет NULL.</script>
+    <script type="text/plain" class="solution">SELECT name, price / NULLIF(stock, 0) AS ratio FROM products;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="7">
+    <p class="task"><span class="qnum">7.</span> Выведи <code>name</code> всех покупателей, чья страна <b>не</b> <code>'USA'</code>.
+    Важно: покупателей с неизвестной страной (<code>NULL</code>) тоже считаем «не из USA» и <b>включаем</b>.
+    <small>(Наивное <code>country &lt;&gt; 'USA'</code> их потеряет.)</small></p>
+    <script type="text/plain" class="hint">NULL-безопасное сравнение: WHERE country IS DISTINCT FROM 'USA'. Или country <> 'USA' OR country IS NULL.</script>
+    <script type="text/plain" class="solution">SELECT name FROM customers WHERE country IS DISTINCT FROM 'USA';</script>
+  </div>
+
+  <div class="sql-exercise" data-num="8">
+    <p class="task"><span class="qnum">8.</span> Найди покупателей <b>без единого заказа</b> — выведи <code>name</code>.
+    Здесь <code>NOT IN</code> безопасен: <code>customer_id</code> в заказах никогда не <code>NULL</code>.</p>
+    <script type="text/plain" class="hint">WHERE customer_id NOT IN (SELECT customer_id FROM orders). Вернётся один — Jack (у него нет заказов).</script>
+    <script type="text/plain" class="solution">SELECT name FROM customers
+WHERE customer_id NOT IN (SELECT customer_id FROM orders);</script>
+  </div>
+
+  <div class="sql-exercise" data-num="9">
+    <p class="task"><span class="qnum">9.</span> Выведи <code>order_id</code> заказов, у которых <b>нет оплаты</b> (нет строки в <code>payments</code>).
+    Подсказка идеи: <code>LEFT JOIN</code> оставит такие заказы, а поля оплаты у них будут <code>NULL</code>.</p>
+    <script type="text/plain" class="hint">Анти-join: LEFT JOIN payments, затем WHERE p.payment_id IS NULL — оставит только заказы без пары.</script>
+    <script type="text/plain" class="solution">SELECT o.order_id
+FROM orders o
+LEFT JOIN payments p ON p.order_id = o.order_id
+WHERE p.payment_id IS NULL;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="10">
+    <p class="task"><span class="qnum">10.</span> Для <b>каждого</b> заказа выведи <code>order_id</code> и оплаченную сумму <code>amount</code>;
+    если оплаты нет — покажи <code>0</code>. Столбцы: <code>order_id</code>, <code>amount</code>.</p>
+    <script type="text/plain" class="hint">LEFT JOIN payments (чтобы остались все заказы) + COALESCE(p.amount, 0), чтобы пустую сумму заменить нулём.</script>
+    <script type="text/plain" class="solution">SELECT o.order_id, COALESCE(p.amount, 0) AS amount
+FROM orders o
+LEFT JOIN payments p ON p.order_id = o.order_id;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="11" data-order="true">
+    <p class="task"><span class="qnum">11.</span> Повтор из Темы 01. Выведи <code>name</code> и <code>country</code> всех покупателей: сортировка по
+    <code>country</code> в <b>обратном</b> алфавитном порядке (<code>DESC</code>), покупателей <b>без страны</b> (<code>NULL</code>) —
+    в самое <b>начало</b>, при равной стране — по <code>name</code> по возрастанию. (важен порядок)</p>
+    <script type="text/plain" class="hint">Порядок NULL задаётся отдельно от DESC: ORDER BY country DESC NULLS FIRST, name ASC.</script>
+    <script type="text/plain" class="solution">SELECT name, country
+FROM customers
+ORDER BY country DESC NULLS FIRST, name ASC;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="12" data-order="true">
+    <p class="task"><span class="qnum">12.</span> <b>Капстоун.</b> По каждому заказу, <b>кроме отменённых</b> (<code>status &lt;&gt; 'cancelled'</code>),
+    выведи <code>order_id</code>, <code>status</code> и оплаченную сумму <code>amount</code> (нет оплаты → <code>0</code>).
+    Отсортируй по сумме <b>по убыванию</b>, при равной сумме — по <code>order_id</code> по возрастанию. (важен порядок)</p>
+    <script type="text/plain" class="hint">LEFT JOIN payments + COALESCE(p.amount,0). status NOT NULL, поэтому <> здесь безопасен. ORDER BY amount DESC, o.order_id ASC.</script>
+    <script type="text/plain" class="solution">SELECT o.order_id, o.status, COALESCE(p.amount, 0) AS amount
+FROM orders o
+LEFT JOIN payments p ON p.order_id = o.order_id
+WHERE o.status <> 'cancelled'
+ORDER BY amount DESC, o.order_id ASC;</script>
+  </div>
+
+  <div class="callout trap">
+    <span class="label">Частые ловушки</span>
+    <p>1) <code>= NULL</code> / <code>&lt;&gt; NULL</code> не работают — только <code>IS NULL</code> / <code>IS NOT NULL</code>.
+    2) <code>&lt;&gt;</code> и <code>NOT IN</code> молча теряют строки с <code>NULL</code> — спасают <code>IS DISTINCT FROM</code> и <code>NOT EXISTS</code>.
+    3) Любая арифметика/склейка с <code>NULL</code> даёт <code>NULL</code> — закрывай дырки <code>COALESCE</code>.</p>
+  </div>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Спроси учителя.</b> Застрял на упражнении или решение непонятно — напиши номер в чат, разберём по шагам.
+    Решишь все 12 — скажи, сколько получилось и где притормозил; по этому решим, что дальше: Тема 03 (CASE и выражения) или JOIN вглубь.</div>
+    <div class="lesson-nav">
+      <a href="./0002-select-in-depth.html">← Тема 01: SELECT вглубь</a>
+      <a href="./0003-aggregation-group-by-having.html">Тема 04: Агрегация →</a>
+    </div>
+  </div>
+
+</div>
+<script type="module" src="../assets/engine.js"></script>
