@@ -11,7 +11,11 @@
 
 import { SEED_SQL } from './seed.js';
 
-const PGLITE_URL = 'https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js';
+// Pinned to an exact version on purpose. Unpinned ("latest") let jsDelivr serve
+// a loader (index.js) and its FS bundle (postgres.data) from different releases,
+// which throws "Invalid FS bundle size: X !== Y". 0.5.5 is verified end-to-end
+// against this course's seed + all exercises. Bump deliberately, then re-test.
+const PGLITE_URL = 'https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.5.5/dist/index.js';
 
 /* ---- database singleton -------------------------------------------- */
 let _dbPromise = null;
