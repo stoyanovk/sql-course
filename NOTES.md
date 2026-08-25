@@ -34,7 +34,10 @@
 
 ## Practice environment
 - Движок: PGlite (настоящий Postgres в WASM), грузится с jsDelivr CDN → нужен интернет.
-  Если CDN однажды сломает API — запинить версию в `assets/engine.js` (PGLITE_URL).
+- ⚠️ PGLITE_URL в `assets/engine.js` **запинен на `@0.5.5`** (2026-08-25). НЕ возвращать «latest»:
+  unpinned давал ошибку `Invalid FS bundle size: 6295100 !== 6293225` — jsDelivr отдавал loader (ждёт 6293225)
+  и FS-бандл `pglite.data` от новой версии 0.5.7 (6295100). Пин делает пару неизменной. 0.5.5 проверен
+  end-to-end на сиде и всех упражнениях. Бампать версию — только осознанно и с повторной проверкой.
 - Данные: маленький интернет-магазин, см. `reference/schema.html`. НЕ менять схему без обновления упражнений.
 - (Локальный фолбэк, если нужен: `python3 serve.py`, порт 8000 — поднимает http.server с charset=utf-8.)
 
