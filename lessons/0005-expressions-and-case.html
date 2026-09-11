@@ -1,0 +1,264 @@
+<meta charset="utf-8">
+<title>Тема 03 · Выражения и CASE — SQL-курс</title>
+<link rel="stylesheet" href="../assets/course.css">
+<div class="wrap">
+
+  <div class="masthead">
+    <span class="course-tag">SQL · Postgres</span>
+    <nav>
+      <a href="../index.html">Курс</a> ·
+      <a href="../reference/schema.html">Схема БД</a> ·
+      <a href="../reference/glossary.html">Глоссарий</a>
+    </nav>
+  </div>
+
+  <h1>Тема 03 — Выражения и CASE</h1>
+  <p class="subtitle">Считать и решать <em>внутри</em> запроса: <code>CASE</code> — это <code>if/else</code> для SQL. Заодно закроем твой вопрос из агрегации: <b>когда <code>FILTER</code>, а когда <code>WHERE</code></b>.</p>
+
+  <div class="callout win">
+    <span class="label">Что заберёшь с урока</span>
+    <p>Научишься писать <code>CASE WHEN … THEN … ELSE … END</code> (метки, ветвления, «корзины» значений),
+    приводить типы через <code>::</code> (и не попадаться на <b>целочисленное деление</b>), склеивать строки и работать с датами.
+    И главное — увидишь, что <code>FILTER</code> — это просто аккуратный <code>CASE</code> внутри агрегата, и поймёшь правило «<code>WHERE</code> или <code>FILTER</code>».</p>
+  </div>
+
+  <div class="source-box">
+    <span class="label">Главный источник по теме</span>
+    PostgreSQL Docs — <a href="https://www.postgresql.org/docs/current/functions-conditional.html" target="_blank" rel="noopener">Conditional Expressions (CASE, COALESCE, NULLIF)</a>
+    и <a href="https://www.postgresql.org/docs/current/typeconv.html" target="_blank" rel="noopener">Type Conversion</a> (первоисточник).
+    Простыми словами — <a href="https://mode.com/sql-tutorial/sql-case/" target="_blank" rel="noopener">Mode SQL: CASE</a>.
+  </div>
+
+  <h2><span class="num">§1</span> CASE — это if/else в SQL</h2>
+  <p><code>CASE</code> проверяет условия <b>сверху вниз</b> и возвращает значение <b>первой</b> подошедшей ветки.
+  Это выражение — его можно ставить в <code>SELECT</code>, <code>WHERE</code>, <code>ORDER BY</code>, внутрь агрегата. Основная форма:</p>
+<pre><span class="kw">CASE</span>
+  <span class="kw">WHEN</span> price &lt; 20   <span class="kw">THEN</span> 'cheap'
+  <span class="kw">WHEN</span> price &lt;= 50  <span class="kw">THEN</span> 'medium'
+  <span class="kw">ELSE</span>              'expensive'
+<span class="kw">END</span></pre>
+  <p>Запусти на живых данных — метка на каждый товар:</p>
+
+  <div class="sql-playground" data-height="150">
+    <script type="text/plain" class="starter">SELECT name, price,
+       CASE
+         WHEN price < 20  THEN 'cheap'
+         WHEN price <= 50 THEN 'medium'
+         ELSE 'expensive'
+       END AS tier
+FROM products;</script>
+  </div>
+
+  <p>Две важные детали:</p>
+  <ul>
+    <li><b>Порядок веток важен.</b> Postgres берёт первую истинную <code>WHEN</code>. Если поставить <code>price &lt;= 50</code> выше <code>price &lt; 20</code>, дешёвые товары попадут в «medium».</li>
+    <li><b>Нет <code>ELSE</code> → получишь <code>NULL</code></b> (привет Теме 02). Если ни одна ветка не подошла и <code>ELSE</code> не написан, результат — <code>NULL</code>.</li>
+  </ul>
+  <p>Есть и короткая форма для сравнения одного столбца с равенством: <code>CASE status WHEN 'paid' THEN … END</code>. Она удобна, но <code>CASE WHEN … </code> (с полным условием) мощнее — им и пользуйся по умолчанию.</p>
+
+  <div class="quiz" data-answer="3">
+    <p class="q">Проверка: в <code>CASE</code> нет ветки <code>ELSE</code>, и ни одно <code>WHEN</code> не сработало. Что вернётся?</p>
+    <ul class="opts">
+      <li><button class="opt">0</button></li>
+      <li><button class="opt">Пустая строка ''</button></li>
+      <li><button class="opt">NULL</button></li>
+      <li><button class="opt">Ошибка выполнения</button></li>
+    </ul>
+    <div class="explain">Верно: без <code>ELSE</code> непокрытые строки дают <code>NULL</code>. Это частый источник «внезапных» <code>NULL</code> —
+    если нужен запасной вариант, пиши <code>ELSE</code> явно.</div>
+  </div>
+
+  <h2><span class="num">§2</span> Приведение типов через <code>::</code> и ловушка деления</h2>
+  <p>Тип значения решает, как оно себя ведёт. Приведение (cast) меняет тип: <code>value::type</code> (это Postgres-синтаксис; стандартный —
+  <code>CAST(value AS type)</code>, то же самое).</p>
+  <p>Самая частая боль backend-разработчика — <b>целочисленное деление</b>. Если <em>оба</em> операнда целые, Postgres делит нацело и <b>отбрасывает дробь</b>:</p>
+
+  <div class="sql-playground" data-height="90">
+    <script type="text/plain" class="starter">SELECT 7 / 2        AS int_div,     -- 3  (дробь отброшена!)
+       7.0 / 2      AS numeric_div, -- 3.5 (одно число дробное → результат дробный)
+       7::numeric / 2 AS cast_div;    -- 3.5 (привели тип явно)</script>
+  </div>
+
+  <p>Почему это важно для backend: если делишь два <code>int</code>-столбца (например, «сумма / количество»), ты молча получишь округлённое вниз число и «потеряешь копейки», без всякой ошибки. Лечится приведением одного операнда: <code>col_a::numeric / col_b</code>. Другие частые касты: <code>'42'::int</code>, <code>now()::date</code>, <code>id::text</code>.</p>
+
+  <h2><span class="num">§3</span> Строки и даты</h2>
+  <p>Строки склеиваются оператором <code>||</code>. Полезные функции: <code>UPPER</code>/<code>LOWER</code>, <code>LENGTH</code>, <code>LEFT/RIGHT</code>, <code>TRIM</code>.</p>
+  <p><b>Ловушка (снова Тема 02):</b> <code>||</code> с <code>NULL</code> делает <code>NULL</code> <em>всю</em> строку. Защита — <code>COALESCE(col, 'запасное')</code>.</p>
+  <p>Из даты можно достать часть через <code>EXTRACT(part FROM date)</code>: <code>EXTRACT(YEAR FROM created_at)</code>, <code>MONTH</code>, <code>DOW</code> (день недели).
+  А разность двух дат (<code>date - date</code>) даёт число дней.</p>
+
+  <div class="sql-playground" data-height="90">
+    <script type="text/plain" class="starter">SELECT name,
+       UPPER(name) AS shout,
+       EXTRACT(MONTH FROM created_at) AS reg_month
+FROM customers;</script>
+  </div>
+
+  <h2><span class="num">§4</span> Разбор твоего вопроса: <code>WHERE</code> vs <code>FILTER</code> vs <code>CASE</code></h2>
+  <p>Ты запнулся на этом в агрегации — разберём раз и навсегда. Все трое умеют «условие», но работают на <b>разном уровне</b>:</p>
+  <ul>
+    <li><code>WHERE</code> — фильтр <b>строк для всего запроса</b>. Он выкидывает строки <em>до</em> агрегации. Условие <b>одно на все</b> агрегаты.</li>
+    <li><code>FILTER (WHERE …)</code> — фильтр <b>для одного конкретного агрегата</b>. Строки остаются в запросе, но <em>этот</em> <code>COUNT/SUM</code> считает только подходящие. Можно рядом поставить несколько агрегатов с <b>разными</b> условиями.</li>
+    <li><code>CASE</code> внутри агрегата — то же самое, что <code>FILTER</code>, но «руками». <code>FILTER</code> — это синтаксический сахар над ним.</li>
+  </ul>
+  <p>Эти три выражения дают <b>одинаковый</b> результат:</p>
+<pre>COUNT(*) <span class="kw">FILTER</span> (<span class="kw">WHERE</span> status = 'paid')          <span class="kw">-- 1) чище всего</span>
+SUM(<span class="kw">CASE WHEN</span> status = 'paid' <span class="kw">THEN</span> 1 <span class="kw">ELSE</span> 0 <span class="kw">END</span>)  <span class="kw">-- 2) то же руками</span>
+COUNT(<span class="kw">CASE WHEN</span> status = 'paid' <span class="kw">THEN</span> 1 <span class="kw">END</span>)        <span class="kw">-- 3) NULL не считается COUNT-ом</span></pre>
+
+  <div class="callout">
+    <span class="label">Правило выбора</span>
+    <p>Нужно <b>одно</b> условие, и «ненужные» строки тебе вообще не интересны → <code>WHERE</code> (короче и быстрее).<br>
+    Нужно <b>несколько разных</b> подсчётов в <em>одной</em> строке результата (всего / оплачено / отменено) → <code>FILTER</code> (или <code>CASE</code> внутри агрегата).
+    <code>WHERE</code> так не умеет: он один на весь запрос.</p>
+  </div>
+
+  <div class="quiz" data-answer="2">
+    <p class="q">Проверка: нужно в <b>одной строке</b> вывести «всего заказов» и «сколько из них оплачено». Чем считать?</p>
+    <ul class="opts">
+      <li><button class="opt">WHERE status = 'paid' — и всё готово</button></li>
+      <li><button class="opt">COUNT(*) и рядом COUNT(*) FILTER (WHERE status='paid')</button></li>
+      <li><button class="opt">Двумя отдельными запросами, иначе никак</button></li>
+      <li><button class="opt">HAVING status = 'paid'</button></li>
+    </ul>
+    <div class="explain">Верно: <code>WHERE</code> отфильтровал бы <em>все</em> строки до оплаченных, и «всего» посчиталось бы неправильно.
+    Нужны два разных счётчика рядом → <code>FILTER</code> (или <code>SUM(CASE …)</code>).</div>
+  </div>
+
+  <hr>
+
+  <div class="exset-head">
+    <h2><span class="num">§5</span> Практика · 12 упражнений</h2>
+    <span class="progress" data-progress>решено 0 / 12</span>
+  </div>
+  <p>Пиши запрос, жми «Проверить» (<code>⌘/Ctrl+Enter</code>). Сначала сам — усилие памяти строит навык. Подсказка и решение рядом,
+  бери их только когда реально застрял. Держи <a href="../reference/schema.html">схему</a> под рукой. Внутри намеренно вплетены агрегация и <code>NULL</code> с прошлых тем — это повторение.</p>
+
+  <div class="sql-exercise" data-num="1">
+    <p class="task"><span class="qnum">1.</span> Разминка с <code>CASE</code>: для каждого товара выведи <code>name</code> и метку наличия — <code>'in stock'</code>, если <code>stock &gt; 0</code>, иначе <code>'out of stock'</code>.</p>
+    <script type="text/plain" class="hint">CASE WHEN stock > 0 THEN 'in stock' ELSE 'out of stock' END AS availability. GROUP BY не нужен — это строка на строку.</script>
+    <script type="text/plain" class="solution">SELECT name,
+       CASE WHEN stock > 0 THEN 'in stock' ELSE 'out of stock' END AS availability
+FROM products;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="2">
+    <p class="task"><span class="qnum">2.</span> Ценовые «корзины»: выведи <code>name</code>, <code>price</code> и метку <code>tier</code>: <code>'cheap'</code> при <code>price &lt; 20</code>, <code>'medium'</code> при <code>price &lt;= 50</code>, иначе <code>'expensive'</code>. Следи за порядком веток!</p>
+    <script type="text/plain" class="hint">CASE WHEN price < 20 THEN 'cheap' WHEN price <= 50 THEN 'medium' ELSE 'expensive' END. Дешёвая ветка должна идти первой.</script>
+    <script type="text/plain" class="solution">SELECT name, price,
+       CASE
+         WHEN price < 20  THEN 'cheap'
+         WHEN price <= 50 THEN 'medium'
+         ELSE 'expensive'
+       END AS tier
+FROM products;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="3">
+    <p class="task"><span class="qnum">3.</span> <code>CASE</code> <b>без</b> <code>ELSE</code>: выведи <code>order_id</code>, <code>status</code> и столбец <code>done</code> — <code>'done'</code>, если статус <code>paid</code> или <code>shipped</code>. Для остальных статусов <code>done</code> должен быть <code>NULL</code> (не пиши <code>ELSE</code>).</p>
+    <script type="text/plain" class="hint">CASE WHEN status IN ('paid','shipped') THEN 'done' END AS done — без ELSE непокрытые строки дадут NULL.</script>
+    <script type="text/plain" class="solution">SELECT order_id, status,
+       CASE WHEN status IN ('paid','shipped') THEN 'done' END AS done
+FROM orders;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="4">
+    <p class="task"><span class="qnum">4.</span> Ловушка деления. Одной строкой выведи три числа: <code>7 / 2</code>, <code>7.0 / 2</code> и <code>7::numeric / 2</code>. Посмотри, чем отличается первый столбец, и пойми почему.</p>
+    <script type="text/plain" class="hint">SELECT 7/2, 7.0/2, 7::numeric/2; — целое/целое режет дробь, а один дробный операнд делает результат дробным.</script>
+    <script type="text/plain" class="solution">SELECT 7 / 2        AS int_div,
+       7.0 / 2      AS numeric_div,
+       7::numeric / 2 AS cast_div;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="5">
+    <p class="task"><span class="qnum">5.</span> Склей строку: для каждого покупателя выведи <code>name</code> и столбец <code>label</code> вида <code>name || ' — ' || country</code>. Запусти и заметь: у кого <code>country = NULL</code> — весь <code>label</code> станет <code>NULL</code>.</p>
+    <script type="text/plain" class="hint">name || ' — ' || country AS label. Конкатенация с NULL обнуляет всю строку — это увидим у Dmitry и Grace.</script>
+    <script type="text/plain" class="solution">SELECT name, name || ' — ' || country AS label
+FROM customers;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="6">
+    <p class="task"><span class="qnum">6.</span> Почини упражнение 5: тот же <code>label</code>, но вместо пустой страны подставь <code>'unknown'</code>, чтобы строка не обнулялась. (повтор Темы 02)</p>
+    <script type="text/plain" class="hint">Оберни country в COALESCE: name || ' — ' || COALESCE(country, 'unknown').</script>
+    <script type="text/plain" class="solution">SELECT name, name || ' — ' || COALESCE(country, 'unknown') AS label
+FROM customers;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="7" data-order="true">
+    <p class="task"><span class="qnum">7.</span> Даты + агрегация: сколько заказов создано в <b>каждом месяце</b>? Выведи номер месяца (из <code>created_at</code>) и количество, отсортируй по месяцу по возрастанию. <small>(важен порядок)</small></p>
+    <script type="text/plain" class="hint">EXTRACT(MONTH FROM created_at) в SELECT и в GROUP BY, COUNT(*), ORDER BY по месяцу.</script>
+    <script type="text/plain" class="solution">SELECT EXTRACT(MONTH FROM created_at) AS mon, COUNT(*) AS cnt
+FROM orders
+GROUP BY mon
+ORDER BY mon;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="8">
+    <p class="task"><span class="qnum">8.</span> Условный подсчёт <b>руками</b>: одной строкой по всем заказам посчитай <code>paid</code> и <code>cancelled</code> через <code>SUM(CASE …)</code> (два столбца).</p>
+    <script type="text/plain" class="hint">SUM(CASE WHEN status='paid' THEN 1 ELSE 0 END) AS paid, и так же для 'cancelled'. Без GROUP BY — по всей таблице.</script>
+    <script type="text/plain" class="solution">SELECT SUM(CASE WHEN status = 'paid'      THEN 1 ELSE 0 END) AS paid,
+       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
+FROM orders;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="9">
+    <p class="task"><span class="qnum">9.</span> Теперь то же, что в 8, но через <code>FILTER</code>. Убедись, что числа совпадают — это и есть «<code>FILTER</code> = <code>CASE</code> внутри агрегата, только чище».</p>
+    <script type="text/plain" class="hint">COUNT(*) FILTER (WHERE status='paid') AS paid, COUNT(*) FILTER (WHERE status='cancelled') AS cancelled.</script>
+    <script type="text/plain" class="solution">SELECT COUNT(*) FILTER (WHERE status = 'paid')      AS paid,
+       COUNT(*) FILTER (WHERE status = 'cancelled') AS cancelled
+FROM orders;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="10">
+    <p class="task"><span class="qnum">10.</span> А здесь условие <b>одно на всё</b> → нужен <code>WHERE</code>, не <code>FILTER</code>. Только по <code>paid</code>-заказам посчитай, сколько их у <b>каждого</b> покупателя. Выведи <code>customer_id</code> и количество.</p>
+    <script type="text/plain" class="hint">Здесь все строки должны быть только paid → WHERE status='paid', потом GROUP BY customer_id, COUNT(*). FILTER тут был бы лишним.</script>
+    <script type="text/plain" class="solution">SELECT customer_id, COUNT(*) AS paid_orders
+FROM orders
+WHERE status = 'paid'
+GROUP BY customer_id;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="11">
+    <p class="task"><span class="qnum">11.</span> Тут <code>WHERE</code> не подойдёт — нужны два разных счётчика рядом. Для <b>каждой категории</b> выведи <code>category_id</code>, сколько всего товаров и сколько из них <b>нет в наличии</b> (<code>stock = 0</code>).</p>
+    <script type="text/plain" class="hint">COUNT(*) AS total и COUNT(*) FILTER (WHERE stock = 0) AS out_of_stock, с GROUP BY category_id. WHERE stock=0 убил бы товары в наличии, и total сломался бы.</script>
+    <script type="text/plain" class="solution">SELECT category_id,
+       COUNT(*)                          AS total,
+       COUNT(*) FILTER (WHERE stock = 0) AS out_of_stock
+FROM products
+GROUP BY category_id;</script>
+  </div>
+
+  <div class="sql-exercise" data-num="12" data-order="true">
+    <p class="task"><span class="qnum">12.</span> <b>Капстоун.</b> Только по <code>paid</code>-заказам: для каждого покупателя (<code>name</code>) посчитай суммарную выручку (сумма <code>quantity * unit_price</code>) и добавь метку <code>tier</code> через <code>CASE</code>: <code>'VIP'</code>, если сумма <code>&gt; 150</code>, иначе <code>'regular'</code>. Отсортируй по сумме по убыванию. <small>(важен порядок)</small></p>
+    <script type="text/plain" class="hint">JOIN customers→orders→order_items, WHERE o.status='paid', GROUP BY cu.name. Метку строй по SUM(...) прямо в CASE: CASE WHEN SUM(oi.quantity*oi.unit_price) > 150 THEN 'VIP' ELSE 'regular' END. ORDER BY spent DESC.</script>
+    <script type="text/plain" class="solution">SELECT cu.name,
+       SUM(oi.quantity * oi.unit_price) AS spent,
+       CASE WHEN SUM(oi.quantity * oi.unit_price) > 150 THEN 'VIP' ELSE 'regular' END AS tier
+FROM customers cu
+JOIN orders o       ON o.customer_id = cu.customer_id
+JOIN order_items oi ON oi.order_id = o.order_id
+WHERE o.status = 'paid'
+GROUP BY cu.name
+ORDER BY spent DESC;</script>
+  </div>
+
+  <div class="callout trap">
+    <span class="label">Частые ловушки</span>
+    <p>1) Порядок веток в <code>CASE</code>: срабатывает <b>первая</b> истинная — узкие условия ставь выше.
+    2) <code>CASE</code> без <code>ELSE</code> молча даёт <code>NULL</code>.
+    3) <code>int / int</code> режет дробь — приводи один операнд к <code>numeric</code>.
+    4) <code>||</code> с <code>NULL</code> обнуляет всю строку — спасает <code>COALESCE</code>.
+    5) Одно условие на весь запрос → <code>WHERE</code>; несколько разных счётчиков рядом → <code>FILTER</code>.</p>
+  </div>
+
+  <div class="lesson-footer">
+    <div class="ask">💬 <b>Спроси учителя.</b> Застрял на упражнении или решение непонятно — напиши номер в чат, разберём по шагам.
+    Решишь все 12 — скажи, сколько получилось и где притормозил; по этому построю следующую тему (<b>Тема 05 — JOIN вглубь</b>).</div>
+    <div class="lesson-nav">
+      <a href="./0003-aggregation-group-by-having.html">← Тема 04: Агрегация</a>
+      <a href="../reference/syllabus.html">Программа курса →</a>
+    </div>
+  </div>
+
+</div>
+<script type="module" src="../assets/engine.js"></script>
