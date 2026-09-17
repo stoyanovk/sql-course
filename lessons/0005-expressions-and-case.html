@@ -163,11 +163,12 @@ FROM orders;</script>
   </div>
 
   <div class="sql-exercise" data-num="4">
-    <p class="task"><span class="qnum">4.</span> Ловушка деления. Одной строкой выведи три числа: <code>7 / 2</code>, <code>7.0 / 2</code> и <code>7::numeric / 2</code>. Посмотри, чем отличается первый столбец, и пойми почему.</p>
-    <script type="text/plain" class="hint">SELECT 7/2, 7.0/2, 7::numeric/2; — целое/целое режет дробь, а один дробный операнд делает результат дробным.</script>
-    <script type="text/plain" class="solution">SELECT 7 / 2        AS int_div,
-       7.0 / 2      AS numeric_div,
-       7::numeric / 2 AS cast_div;</script>
+    <p class="task"><span class="qnum">4.</span> Ловушка деления на живых данных. Для каждого товара выведи <code>name</code>, <code>stock</code>, целочисленное деление <code>stock / 2</code> и точное <code>stock::numeric / 2</code>. Найди товары с <b>нечётным</b> <code>stock</code> — там видно, как первый столбец теряет дробь.</p>
+    <script type="text/plain" class="hint">stock / 2 — оба операнда целые, дробь отброшена. stock::numeric / 2 — привели один операнд, результат дробный. GROUP BY не нужен.</script>
+    <script type="text/plain" class="solution">SELECT name, stock,
+       stock / 2          AS half_int,
+       stock::numeric / 2 AS half_exact
+FROM products;</script>
   </div>
 
   <div class="sql-exercise" data-num="5">
@@ -194,18 +195,23 @@ ORDER BY mon;</script>
   </div>
 
   <div class="sql-exercise" data-num="8">
-    <p class="task"><span class="qnum">8.</span> Условный подсчёт <b>руками</b>: одной строкой по всем заказам посчитай <code>paid</code> и <code>cancelled</code> через <code>SUM(CASE …)</code> (два столбца).</p>
-    <script type="text/plain" class="hint">SUM(CASE WHEN status='paid' THEN 1 ELSE 0 END) AS paid, и так же для 'cancelled'. Без GROUP BY — по всей таблице.</script>
-    <script type="text/plain" class="solution">SELECT SUM(CASE WHEN status = 'paid'      THEN 1 ELSE 0 END) AS paid,
-       SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
+    <p class="task"><span class="qnum">8.</span> Многоветочный <code>CASE</code> (так умеет <b>только</b> <code>CASE</code> — <code>FILTER</code> живёт лишь внутри агрегата). Для каждого заказа выведи <code>order_id</code>, <code>status</code> и столбец <code>stage</code>: <code>'done'</code> для <code>paid</code>/<code>shipped</code>, <code>'active'</code> для <code>pending</code>, <code>'lost'</code> для <code>cancelled</code>.</p>
+    <script type="text/plain" class="hint">CASE WHEN status IN ('paid','shipped') THEN 'done' WHEN status='pending' THEN 'active' ELSE 'lost' END AS stage. Это строка на строку — без GROUP BY.</script>
+    <script type="text/plain" class="solution">SELECT order_id, status,
+       CASE
+         WHEN status IN ('paid','shipped') THEN 'done'
+         WHEN status = 'pending'           THEN 'active'
+         ELSE 'lost'
+       END AS stage
 FROM orders;</script>
   </div>
 
   <div class="sql-exercise" data-num="9">
-    <p class="task"><span class="qnum">9.</span> Теперь то же, что в 8, но через <code>FILTER</code>. Убедись, что числа совпадают — это и есть «<code>FILTER</code> = <code>CASE</code> внутри агрегата, только чище».</p>
-    <script type="text/plain" class="hint">COUNT(*) FILTER (WHERE status='paid') AS paid, COUNT(*) FILTER (WHERE status='cancelled') AS cancelled.</script>
+    <p class="task"><span class="qnum">9.</span> Условный подсчёт: одной строкой по всем заказам посчитай <code>paid</code>, <code>cancelled</code> и <code>shipped</code> — <b>три числа рядом</b>. Одним <code>WHERE</code> так нельзя (он один на весь запрос) — нужен <code>FILTER</code> (или <code>CASE</code> внутри агрегата).</p>
+    <script type="text/plain" class="hint">COUNT(*) FILTER (WHERE status='paid') AS paid, и так же для 'cancelled' и 'shipped'. Три агрегата с разными условиями рядом — WHERE один на весь запрос и так не умеет.</script>
     <script type="text/plain" class="solution">SELECT COUNT(*) FILTER (WHERE status = 'paid')      AS paid,
-       COUNT(*) FILTER (WHERE status = 'cancelled') AS cancelled
+       COUNT(*) FILTER (WHERE status = 'cancelled') AS cancelled,
+       COUNT(*) FILTER (WHERE status = 'shipped')   AS shipped
 FROM orders;</script>
   </div>
 
